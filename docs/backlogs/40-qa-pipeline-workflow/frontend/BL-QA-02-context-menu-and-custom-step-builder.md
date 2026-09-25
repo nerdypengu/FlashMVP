@@ -1,27 +1,72 @@
-# Backlog Item: BL-QA-02 - Context Menu & Custom Step Builder
-> **Feature:** QA Pipeline Workflow | **Layer:** Frontend (`client/src/components/qa/ContextMenu.jsx`)
+# BL-QA-02 — Context Menu & Custom Step Builder
+> **Assigned To:** 📊 **Person 2** — QA Canvas & Observability Specialist  
+> **Feature:** QA Pipeline Workflow | **Layer:** Frontend  
+> **File:** `client/src/components/qa/ContextMenu.jsx`, `client/src/components/qa/AddStepModal.jsx`
 
 ---
 
-## 🎯 Task Objective
-Implement the right-click context menu on the QA canvas and the `AddStepModal` for configuring custom shell command steps.
+## 🎯 What This Does
+
+Allows developers to right-click the QA canvas OR click the `"+ Add Custom Step"` button to open a context menu that lets them add a custom QA step (e.g. `npm run test:e2e`, `python -m pytest --cov`) to the IBM Bob `bob-skill-watsonx-qa` pipeline.
 
 ---
 
-## 🛠️ File Locations & Component Specs
-* **Context Menu Component:** `client/src/components/qa/ContextMenu.jsx`
-* **Modal Component:** `client/src/components/qa/AddStepModal.jsx`
+## 🗂️ Files to Create
+
+| File | Purpose |
+| :--- | :--- |
+| `client/src/components/qa/ContextMenu.jsx` | Right-click context menu |
+| `client/src/components/qa/AddStepModal.jsx` | Modal to configure custom step |
+
+---
+
+## 🖥️ UI Layout: Context Menu
+
+```
+┌────────────────────────────┐
+│  ➕ Add Custom QA Step     │
+│  ✏️  Edit Selected Step    │
+│  🗑️  Remove Selected Step  │
+│  ────────────────          │
+│  ▶️  Run All Steps Now     │
+└────────────────────────────┘
+```
+
+## 🖥️ UI Layout: Add Step Modal
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  ➕ Add Custom QA Step                                   │
+│                                                         │
+│  Step Name: [____________________________]              │
+│  Command:   [npm run test:e2e____________]              │
+│  Timeout:   [30] seconds                                │
+│                                                         │
+│  [Cancel]                            [Add to Pipeline]  │
+└─────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## 📝 Implementation Tasks
-1. Attach `onContextMenu` listener to canvas area.
-2. Render context menu option `➕ Add Custom QA Step`.
-3. Open `AddStepModal` on click accepting `Step Name` and `Shell Command` (e.g. `npm run test:e2e`).
-4. Append new step node to pipeline state on submit.
+
+1. **`ContextMenu.jsx`:** Positioned with `position: fixed` at mouse cursor. Opens on right-click anywhere on the QA canvas. Closes on outside click.
+
+2. **`AddStepModal.jsx`:** Dark glassmorphism modal with:
+   - Step Name input.
+   - Shell command input.
+   - Timeout input (seconds).
+   - On submit → appends new step object to the QA pipeline state.
+
+3. **Wire to `QACanvas.jsx`:** When a new step is added, it immediately appears as a new node at the end of the canvas chain with `PENDING` status.
+
+4. **DEMO_MODE:** Adding a step works purely in local state — no API call needed.
 
 ---
 
-## 🧪 How to Test (Frontend)
-1. Right-click on QA canvas -> verify context menu opens.
-2. Click `Add Custom QA Step` -> enter step details -> verify node appears on canvas.
+## 🧪 Testing & Verification
+
+1. ✅ Right-clicking canvas opens context menu at correct cursor position.
+2. ✅ Clicking "Add Custom QA Step" opens the modal.
+3. ✅ Filling in name/command and submitting adds a new node to the canvas.
+4. ✅ Modal closes and new node is visible with `🟡 PENDING` status.
