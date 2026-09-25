@@ -62,9 +62,21 @@ docs/backlogs/
         └── BL-HUB-02-access-control-and-adoption-analytics-ui.md
 ```
 
+## 👥 4-Person Team Workload & Role Distribution
+
+Tasks are explicitly partitioned across **4 Team Roles** to enable 100% parallel execution:
+
+| Role / Engineer | Assigned Domain | Assigned Backlog Items | Core Responsibilities |
+| :--- | :--- | :--- | :--- |
+| 🎨 **Person 1: Lead Frontend & SDD Architect** | Frontend Shell & SDD Reviewer (`client/`) | • `BL-SDD-02`<br>• `BL-SDD-03`<br>• `BL-ARC-01` | React app shell, dark glassmorphism styling, IBM Bob Header, 3-part SDD reviewer, and human sign-off lock. |
+| 📊 **Person 2: Interactive QA & Observability Specialist** | QA Canvas & Observability (`client/`) | • `BL-QA-01`<br>• `BL-QA-02`<br>• `BL-QA-03`<br>• `BL-PLAY-01`<br>• `BL-PLAY-03`<br>• `BL-PLAY-04` | Visual QA node canvas, custom step builder context menu, iframe playground with service switcher, SSE log viewer, and Recharts telemetry graphs. |
+| 🤖 **Person 3: IBM Agent Engine & Core Skills Engineer** | IBM Bob Agent Core & QA Engine (`server/`) | • `BL-SDD-01`<br>• `BL-SDD-03`<br>• `BL-QA-03` | FastAPI backend, IBM Bob Agent orchestrator, `bob-skill-manifest-parser` (AI prompt engine), and `bob-skill-watsonx-qa` (Watsonx audit & Pytest runner). |
+| ☁️ **Person 4: IBM Cloud Infra & Skill Pack Orchestrator** | Cloud Infra & Mock Router (`server/`) | • `BL-INF-01`<br>• `BL-INF-02`<br>• `BL-ARC-01`<br>• `BL-ARC-02`<br>• `BL-ARC-03`<br>• `BL-PLAY-02`<br>• `BL-PLAY-04`<br>• `BL-HUB-01` | `bob-skill-cloud-db` (PostgreSQL schema runner `< 200ms`), `bob-skill-secrets-vault` (secrets vault & Cloudflare tunnel), `bob-skill-code-engine` (Docker runner), and `DEMO_MODE` mock engine. |
+
 ---
 
-## 👥 How Backend & Frontend Engineers Pick Up Work
+## 🛠️ How Engineers Pick Up Work
 
-* **Backend Engineers (`server/`):** Look inside any feature's `backend/` folder. Every file details API endpoints, Pydantic schemas, Python service locations, and `uvicorn`/Swagger test steps.
-* **Frontend Engineers (`client/`):** Look inside any feature's `frontend/` folder. Every file details React component paths, JSX layout specs, state props, and `npm run dev` browser test steps.
+* **Persons 1 & 2 (Frontend `client/`):** Pick backlog items from `docs/backlogs/*/frontend/`. Every file details React component paths, JSX layout specs, state props, and `npm run dev` browser test steps.
+* **Persons 3 & 4 (Backend `server/`):** Pick backlog items from `docs/backlogs/*/backend/`. Every file details API endpoints, Pydantic schemas, IBM Bob Skill definitions, and `uvicorn`/Swagger test steps.
+

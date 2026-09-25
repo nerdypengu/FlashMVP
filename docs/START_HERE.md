@@ -54,22 +54,94 @@ FlashMVP/
 
 ---
 
-## 💡 2. How FlashMVP Works (System Architecture Summary)
+## 💡 2. System Architecture & Component Interaction Flow
 
-FlashMVP is an online platform for AI-assisted specification, instant containerized deployment, isolated database provisioning, and real-time observability of full-stack web applications.
+FlashMVP is an **Agentic Middleware Proxy** powered by **IBM Bob 2.0**. It acts as a zero-learning bridge that enables developers to build, test, and deploy applications across the **IBM Cloud & Developer Tool Ecosystem** without accessing each IBM tool individually or writing complex IaC manifests.
 
+```mermaid
+flowchart TD
+    subgraph Client_Layer ["Client Layer (React.js + Vite Dashboard)"]
+        direction TB
+        UI_Template["1. Select Starter Template & Prompt\n(React + FastAPI with IBM Tool Bindings)"]
+        UI_BobStatus["⚡ IBM Bob 2.0 Middleware Proxy Banner"]
+        UI_SDD["2. Bob SDD 3-Part Artifact Reviewer\n(Requirements, Technical Design, IBM Tool Specs)"]
+        UI_Approve{"Human Sign-off?\n(Approve & Deploy via IBM Bob)"}
+        
+        UI_QA["3. Interactive QA Visual Canvas\n(ESLint, Pytest, IBM Watsonx Security Audit)"]
+        UI_Deploy["4. One-Click Deploy Trigger"]
+        
+        UI_Playground["5. Container Playground Window\n(Embedded Iframe Preview)"]
+        UI_Switcher["6. Service Switcher Toolbar\n[ Frontend App | Backend /docs | IBM Cloud DB ]"]
+        UI_Logs["7. Live SSE Terminal Log Streamer\n(Aggregated IBM Tool Logs)"]
+        UI_Stats["8. Recharts Telemetry Dashboard\n(CPU % & RAM MB Graphs)"]
+        UI_History["9. Workflow Run History Audit Log"]
+        UI_Hub["10. xAppHub Central Management Portal"]
+    end
+
+    subgraph Dual_Mode_Router ["Mode Router (DEMO_MODE)"]
+        Router{"VITE_DEMO_MODE?"}
+    end
+
+    subgraph Real_Engine ["IBM Bob 2.0 Middleware Proxy Core (FastAPI Backend)"]
+        direction TB
+        Bob_Doc["📄 IBM Bob Document Understanding Engine\n(Parses prompt + flashmvp.json -> SDD Specs)"]
+        Bob_Manager["🤖 IBM Bob Agent Swarm Manager (Agent Mode)"]
+        
+        subgraph Subagent_Swarm ["Parallel IBM Bob 2.0 Proxy Subagents"]
+            Bob_DB["🤖 Subagent Alpha: IBM Database Provisioner\n(CREATE SCHEMA app_xxxx in <200ms)"]
+            Bob_QA["🤖 Subagent Beta: IBM Watsonx QA Inspector\n(ESLint, Pytest, Secret Audit)"]
+            Bob_Docker["🤖 Subagent Gamma: IBM Code Engine & Docker Runner\n(Builds & Runs Container Fleet)"]
+            Bob_Tunnel["🤖 Subagent Delta: IBM Secrets Vault & Cloudflare SSL\n(cloudflared SSL Tunnel & Encrypted ENV)"]
+        end
+
+        API_Containers["Multi-Container Fleet\n- frontend (Host Port 3001)\n- backend (Host Port 8001)"]
+        API_SSE["SSE Real-time Log Streamer\n(GET /api/v1/projects/{id}/containers/{cid}/logs)"]
+        API_Telemetry["Docker & Code Engine Stats Poller\n(GET /api/v1/projects/{id}/containers/{cid}/stats)"]
+    end
+
+    subgraph Mock_Engine ["24/7 Interactive Demo Engine (Vercel Host)"]
+        Mock_Logs["Simulated SSE Build & Terminal Stream"]
+        Mock_Preview["Pre-warmed App Preview Iframe"]
+        Mock_Stats["Simulated CPU/RAM Telemetry Data"]
+    end
+
+    %% Flow Connections
+    UI_Template --> Bob_Doc
+    Bob_Doc --> UI_SDD
+    UI_SDD --> UI_Approve
+    UI_Approve -- "Changes Requested" --> Bob_Doc
+    UI_Approve -- "Approved & Locked" --> UI_QA
+    UI_QA --> UI_Deploy
+    
+    UI_Deploy --> Router
+    
+    Router -- "DEMO_MODE = false\n(Pitch Video / Real Engine)" --> Bob_Manager
+    Router -- "DEMO_MODE = true\n(24/7 Vercel Hosting)" --> Mock_Engine
+
+    %% Real Engine Flow
+    Bob_Manager --> Bob_DB
+    Bob_Manager --> Bob_QA
+    Bob_Manager --> Bob_Docker
+    Bob_Manager --> Bob_Tunnel
+    
+    Bob_Docker --> API_Containers
+    Bob_Tunnel -->|Public HTTPS URL: https://app-8f92a.trycloudflare.com| UI_Playground
+    
+    API_Containers --> API_SSE
+    API_Containers --> API_Telemetry
+    API_SSE --> UI_Logs
+    API_Telemetry --> UI_Stats
+    Bob_Manager --> UI_History
+
+    %% Mock Engine Flow
+    Mock_Logs --> UI_Logs
+    Mock_Preview --> UI_Playground
+    Mock_Stats --> UI_Stats
+
+    %% Switcher and Hub
+    UI_Switcher --> UI_Playground
+    API_Containers --> UI_Hub
 ```
-User Prompt -> FlashMVP -> Auto-Provisions Supabase DB Schema + Container Playground -> Live Link + Observability
-```
-
-### Core Technical Pillars:
-1. **Specs-Driven Development (SDD):** Requires human sign-off on AI-drafted **Requirements**, **Technical Design**, and **Task Breakdown** before code generation unlocks.
-2. **Sub-200ms Supabase Database Isolation:** Automatically creates isolated PostgreSQL schemas (`CREATE SCHEMA app_xxxx`) inside a pre-created Supabase project in `< 200ms`.
-3. **Multi-Container Docker Networks:** Runs user apps as local Docker containers (`frontend` on port 3001, `backend` on port 8001) connected via an isolated Docker bridge network.
-4. **Cloudflare Quick Tunnels (`cloudflared`):** Generates free, instant SSL public links (`https://xxxx.trycloudflare.com`) in 1-2 seconds with zero interstitial warning screens.
-5. **Interactive Container Playground UI:** Embedded iframe preview with simulated address bar, viewport size toggles (`Desktop`, `Mobile`), and a Service Switcher toolbar (`Frontend App`, `Backend API /docs`, `Supabase DB`).
-6. **Vercel / GitHub Actions Style Workflow History:** Audit log of past deployment attempts (`Run #14 - 🟢 Passed`, `Run #13 - 🔴 Failed`) with detail inspectors.
-7. **Fleet Observability:** Live SSE log streamer (`/api/v1/projects/{id}/containers/{cid}/logs`) and Recharts CPU/RAM telemetry stats polling (`/api/v1/projects/{id}/containers/{cid}/stats`).
 
 ---
 
@@ -80,18 +152,28 @@ User Prompt -> FlashMVP -> Auto-Provisions Supabase DB Schema + Container Playgr
 
 ---
 
-## 📄 4. Feature Directory Map & Role Workloads
+## 📄 4. 4-Person Team Workload & Feature Directory Map
 
-Every feature folder in `docs/backlogs/` contains an architectural design specification (`00-design-*.md`), an overview (`00-overview.md`), and backlog items separated into **`backend/`** and **`frontend/`** subdirectories:
+Tasks are partitioned across **4 Team Roles** for parallel development velocity:
+
+| Role / Engineer | Assigned Domain | Assigned Backlog Items | Core Responsibilities |
+| :--- | :--- | :--- | :--- |
+| 🎨 **Person 1: Lead Frontend & SDD Architect** | Frontend Shell & SDD Reviewer (`client/`) | • `BL-SDD-02`<br>• `BL-SDD-03`<br>• `BL-ARC-01` | React app shell, dark glassmorphism styling, IBM Bob Header, 3-part SDD reviewer, and human sign-off lock. |
+| 📊 **Person 2: Interactive QA & Observability Specialist** | QA Canvas & Observability (`client/`) | • `BL-QA-01`<br>• `BL-QA-02`<br>• `BL-QA-03`<br>• `BL-PLAY-01`<br>• `BL-PLAY-03`<br>• `BL-PLAY-04` | Visual QA node canvas, custom step builder context menu, iframe playground with service switcher, SSE log viewer, and Recharts telemetry graphs. |
+| 🤖 **Person 3: IBM Agent Engine & Core Skills Engineer** | IBM Bob Agent Core & QA Engine (`server/`) | • `BL-SDD-01`<br>• `BL-SDD-03`<br>• `BL-QA-03` | FastAPI backend, IBM Bob Agent orchestrator, `bob-skill-manifest-parser` (AI prompt engine), and `bob-skill-watsonx-qa` (Watsonx audit & Pytest runner). |
+| ☁️ **Person 4: IBM Cloud Infra & Skill Pack Orchestrator** | Cloud Infra & Mock Router (`server/`) | • `BL-INF-01`<br>• `BL-INF-02`<br>• `BL-ARC-01`<br>• `BL-ARC-02`<br>• `BL-ARC-03`<br>• `BL-PLAY-02`<br>• `BL-PLAY-04`<br>• `BL-HUB-01` | `bob-skill-cloud-db` (PostgreSQL schema runner `< 200ms`), `bob-skill-secrets-vault` (secrets vault & Cloudflare tunnel), `bob-skill-code-engine` (Docker runner), and `DEMO_MODE` mock engine. |
+
+### Feature Directory & Backlog Map:
 
 | Feature Folder | Backend Backlog (`backend/`) | Frontend Backlog (`frontend/`) |
 | :--- | :--- | :--- |
 | **[10-specs-driven-development](file:///f:/Hackathon/FlashMVP/docs/backlogs/10-specs-driven-development/00-overview.md)** | [BL-SDD-01 (AI Prompt Engine)](file:///f:/Hackathon/FlashMVP/docs/backlogs/10-specs-driven-development/backend/BL-SDD-01-ai-drafting-engine-and-prompt-parser.md)<br>[BL-SDD-03 (Approval Lock API)](file:///f:/Hackathon/FlashMVP/docs/backlogs/10-specs-driven-development/backend/BL-SDD-03-revision-loop-and-approval-locking-api.md) | [BL-SDD-02 (3-Part Reviewer UI)](file:///f:/Hackathon/FlashMVP/docs/backlogs/10-specs-driven-development/frontend/BL-SDD-02-three-part-artifact-review-interface.md)<br>[BL-SDD-03 (Approval Lock UI)](file:///f:/Hackathon/FlashMVP/docs/backlogs/10-specs-driven-development/frontend/BL-SDD-03-revision-loop-and-approval-locking-ui.md) |
-| **[20-application-infrastructure](file:///f:/Hackathon/FlashMVP/docs/backlogs/20-application-infrastructure/00-overview.md)** | [BL-INF-01 (Supabase Schema)](file:///f:/Hackathon/FlashMVP/docs/backlogs/20-application-infrastructure/backend/BL-INF-01-supabase-dynamic-schema-provisioner.md)<br>[BL-INF-02 (Secrets Vault API)](file:///f:/Hackathon/FlashMVP/docs/backlogs/20-application-infrastructure/backend/BL-INF-02-encrypted-secrets-vault-api.md) | [BL-INF-02 (Env Secrets Modal UI)](file:///f:/Hackathon/FlashMVP/docs/backlogs/20-application-infrastructure/frontend/BL-INF-02-environment-variables-modal-ui.md) |
+| **[20-application-infrastructure](file:///f:/Hackathon/FlashMVP/docs/backlogs/20-application-infrastructure/00-overview.md)** | [BL-INF-01 (IBM DB Schema)](file:///f:/Hackathon/FlashMVP/docs/backlogs/20-application-infrastructure/backend/BL-INF-01-supabase-dynamic-schema-provisioner.md)<br>[BL-INF-02 (Secrets Vault API)](file:///f:/Hackathon/FlashMVP/docs/backlogs/20-application-infrastructure/backend/BL-INF-02-encrypted-secrets-vault-api.md) | [BL-INF-02 (Env Secrets Modal UI)](file:///f:/Hackathon/FlashMVP/docs/backlogs/20-application-infrastructure/frontend/BL-INF-02-environment-variables-modal-ui.md) |
 | **[30-expandable-architecture](file:///f:/Hackathon/FlashMVP/docs/backlogs/30-expandable-architecture/00-overview.md)** | [BL-ARC-01 (Template Engine)](file:///f:/Hackathon/FlashMVP/docs/backlogs/30-expandable-architecture/backend/BL-ARC-01-starter-template-generator-engine.md)<br>[BL-ARC-02 (Manifest Parser)](file:///f:/Hackathon/FlashMVP/docs/backlogs/30-expandable-architecture/backend/BL-ARC-02-flashmvp-json-manifest-parser.md)<br>[BL-ARC-03 (Docker Fleet Runner)](file:///f:/Hackathon/FlashMVP/docs/backlogs/30-expandable-architecture/backend/BL-ARC-03-multi-container-docker-network-orchestrator.md) | [BL-ARC-01 (Template Selector UI)](file:///f:/Hackathon/FlashMVP/docs/backlogs/30-expandable-architecture/frontend/BL-ARC-01-starter-template-selector-ui.md) |
 | **[40-qa-pipeline-workflow](file:///f:/Hackathon/FlashMVP/docs/backlogs/40-qa-pipeline-workflow/00-overview.md)** | [BL-QA-03 (Run History API)](file:///f:/Hackathon/FlashMVP/docs/backlogs/40-qa-pipeline-workflow/backend/BL-QA-03-workflow-run-history-api.md) | [BL-QA-01 (Visual QA Canvas UI)](file:///f:/Hackathon/FlashMVP/docs/backlogs/40-qa-pipeline-workflow/frontend/BL-QA-01-interactive-visual-node-canvas.md)<br>[BL-QA-02 (Context Menu Modal UI)](file:///f:/Hackathon/FlashMVP/docs/backlogs/40-qa-pipeline-workflow/frontend/BL-QA-02-context-menu-and-custom-step-builder.md)<br>[BL-QA-03 (Run History UI Drawer)](file:///f:/Hackathon/FlashMVP/docs/backlogs/40-qa-pipeline-workflow/frontend/BL-QA-03-workflow-run-history-and-detail-inspector-ui.md) |
 | **[50-container-playground-observability](file:///f:/Hackathon/FlashMVP/docs/backlogs/50-container-playground-observability/00-overview.md)** | [BL-PLAY-02 (Cloudflare Tunnel)](file:///f:/Hackathon/FlashMVP/docs/backlogs/50-container-playground-observability/backend/BL-PLAY-02-cloudflare-quick-tunnel-manager.md)<br>[BL-PLAY-04 (SSE Logs & Stats API)](file:///f:/Hackathon/FlashMVP/docs/backlogs/50-container-playground-observability/backend/BL-PLAY-04-container-telemetry-and-sse-log-streamer-api.md) | [BL-PLAY-01 (Iframe Playground UI)](file:///f:/Hackathon/FlashMVP/docs/backlogs/50-container-playground-observability/frontend/BL-PLAY-01-embedded-iframe-playground-and-viewport-controls.md)<br>[BL-PLAY-03 (Service Switcher UI)](file:///f:/Hackathon/FlashMVP/docs/backlogs/50-container-playground-observability/frontend/BL-PLAY-03-multi-service-switcher-toolbar.md)<br>[BL-PLAY-04 (Telemetry & Log UI)](file:///f:/Hackathon/FlashMVP/docs/backlogs/50-container-playground-observability/frontend/BL-PLAY-04-container-fleet-telemetry-and-log-viewer-ui.md) |
 | **[60-xapphub-management-portal](file:///f:/Hackathon/FlashMVP/docs/backlogs/60-xapphub-management-portal/00-overview.md)** | [BL-HUB-01 (Catalog API)](file:///f:/Hackathon/FlashMVP/docs/backlogs/60-xapphub-management-portal/backend/BL-HUB-01-central-application-catalog-api.md) | [BL-HUB-01 (Catalog Grid UI)](file:///f:/Hackathon/FlashMVP/docs/backlogs/60-xapphub-management-portal/frontend/BL-HUB-01-central-application-catalog-ui.md)<br>[BL-HUB-02 (RBAC & Analytics UI)](file:///f:/Hackathon/FlashMVP/docs/backlogs/60-xapphub-management-portal/frontend/BL-HUB-02-access-control-and-adoption-analytics-ui.md) |
+
 
 ---
 

@@ -1,57 +1,118 @@
 # FlashMVP - System Architecture & Technical Design Specification
-> **3-Day Hackathon Edition** | Optimized for Feasibility, Velocity, and Demo Impact
+> **IBM Bob 2.0 Powered Middleware Proxy & Developer Platform** | Zero-Learning Integration with IBM Cloud & Developer Tools
 
 ---
 
 ## 1. Executive Summary & Design Philosophy
 
-The goal of FlashMVP is to demonstrate an end-to-end platform for AI-assisted specification, generation, continuous testing, containerized deployment, database isolation, and real-time monitoring of full-stack web applications.
+FlashMVP functions as an **Agentic Middleware Proxy** powered by **IBM Bob 2.0**. Its purpose is to bridge developer application templates directly into the **IBM Cloud & Developer Tool Ecosystem** without requiring developers to log into separate IBM web consoles, manage complex IAM credentials, or write custom IaC manifests.
 
-For a 3-day hackathon sprint, **DevOps friction is the enemy**. Rather than fighting AWS IAM permissions, multi-minute Supabase cloud project provisioning spinners, and complex Prometheus/Grafana infrastructure, FlashMVP uses a **pragmatic single-host runtime architecture** with high-visual-impact UI feedback loops.
+FlashMVP abstracts IBM tool complexity using three core mechanisms:
+1. **IBM Tool Binding Manifests (`flashmvp.json`):** Pre-packaged starter templates equipped with IBM service definitions (`ibm-code-engine`, `ibm-postgres-db`, `ibm-secrets-manager`, `ibm-watsonx-qa`).
+2. **IBM Bob 2.0 Document & Prompt Understanding:** Converts user prompts and manifest files into locked Specs-Driven Development (SDD) plans.
+3. **IBM Bob Parallel Subagent Proxy Swarm:** Concurrently dispatches 4 subagents to provision IBM databases, run QA checks, deploy containers to IBM Code Engine / local engine, and manage secrets.
 
 ---
 
-## 2. Recommended Technology Stack
+## 2. Recommended Technology Stack & IBM Tool Proxy Mappings
 
-| Layer | Technology | Rationale |
+| Layer | Technology | Role as IBM Tool Proxy |
 | :--- | :--- | :--- |
-| **Frontend UI** | **React.js + Vite** | Fast HMR, clean component architecture, effortless state management, perfect for real-time dashboards and dynamic charts. |
-| **Styling & Visuals** | **Vanilla CSS + Modern Tokens** | High visual appeal, dark mode glassmorphism, micro-animations, fast custom UI without framework overhead. |
-| **Backend API** | **FastAPI (Python)** | High velocity, native async, auto-generated OpenAPI (`/docs`), seamless integration with Docker Python SDK & Supabase client. |
-| **Database** | **Supabase (PostgreSQL)** | Multi-schema tenant isolation within a single pre-provisioned instance. |
-| **Container Engine** | **Docker Engine API** | Local/Server docker execution via `docker-py` SDK for instant container provisioning, port mapping, and live stats polling. |
-| **Real-time Telemetry** | **FastAPI SSE / WebSockets** | Streaming build/deploy logs and live Docker container stats to React charts. |
+| **Frontend UI** | **React.js + Vite** | Single-pane-of-glass dashboard for previewing apps, switching service views, and monitoring IBM tool status. |
+| **Styling & Visuals** | **Vanilla CSS + Glassmorphism** | Modern, premium dark mode UI with interactive subagent telemetry cards. |
+| **Agent Engine Core**| **IBM Bob 2.0 Agent Engine** | Orchestrates Agent Mode execution, document understanding, and parallel subagent proxy delegation. |
+| **Backend Middleware**| **FastAPI (Python 3.11+)** | High-performance middleware proxy executing async IBM API calls, `docker-py`, and Supabase SQL runner. |
+| **Database Layer** | **IBM Cloud DB / Supabase PG** | Isolated PostgreSQL tenant schemas (`CREATE SCHEMA app_xxxx`) provisioned in `< 200ms` by Bob DB Subagent. |
+| **Compute / Deploy** | **IBM Code Engine / Docker Engine**| Automated multi-container build & serverless deployment managed by Bob Fleet Subagent. |
+| **Secrets & SSL Vault**| **IBM Secrets Manager / Cloudflare**| Encrypted vault injection (`-e KEY=VAL`) and instant SSL HTTPS tunneling (`*.trycloudflare.com`). |
 
 ---
 
-## 3. Core Architecture Diagram
+## 3. Core Architecture & Middleware Proxy Diagram
 
 ```mermaid
 flowchart TD
-    subgraph Client ["Frontend: React + Vite (Dashboard & UI)"]
-        UI_Spec[1. SDD Spec Review & Toggles]
-        UI_Deploy[2. One-Click Deploy & Logs]
-        UI_Monitor[3. Real-Time Telemetry Dashboard]
+    subgraph Client_Layer ["Developer Client Layer (React.js + Vite Dashboard)"]
+        direction TB
+        UI_Template["1. Select Starter Template & Prompt\n(React + FastAPI with IBM Bindings)"]
+        UI_BobStatus["⚡ IBM Bob 2.0 Middleware Proxy Banner"]
+        UI_SDD["2. Bob SDD Specs Reviewer\n(Requirements, Technical Design, IBM Tool Bindings)"]
+        UI_Approve{"Human Sign-off?\n(Approve & Deploy via IBM Bob)"}
+        
+        UI_QA["3. Interactive QA Visual Canvas\n(ESLint, Pytest, IBM Watsonx Security Audit)"]
+        UI_Deploy["4. One-Click Deploy Trigger"]
+        
+        UI_Playground["5. Container Playground Window\n(Embedded Iframe Preview)"]
+        UI_Switcher["6. Service Switcher Toolbar\n[ Frontend App | Backend /docs | IBM Cloud DB ]"]
+        UI_Logs["7. Live SSE Terminal Log Streamer\n(Aggregated IBM Tool Logs)"]
+        UI_Stats["8. Recharts Telemetry Dashboard\n(CPU % & RAM MB Graphs)"]
+        UI_History["9. Workflow Run History Audit Log"]
+        UI_Hub["10. xAppHub Central Management Portal"]
     end
 
-    subgraph Backend ["Backend: FastAPI (Python 3.11+)"]
-        API_Spec[Spec Generator & Approval Engine]
-        API_Orchestrator[Deployment & QA Pipeline Orchestrator]
-        API_Monitor[Docker Stats Telemetry Poller]
+    subgraph Dual_Mode_Router ["Mode Router (DEMO_MODE)"]
+        Router{"VITE_DEMO_MODE?"}
     end
 
-    subgraph Infrastructure ["Infrastructure Services"]
-        Supabase[(Single Supabase Instance\nIsolated Schemas: app_xxxx)]
-        DockerEngine[Docker Engine API\nLocal / Host Server Containers]
+    subgraph Real_Engine ["IBM Bob 2.0 Middleware Proxy Core (FastAPI Backend)"]
+        direction TB
+        Bob_Doc["📄 IBM Bob Document Understanding Engine\n(Parses prompt + flashmvp.json -> SDD Specs)"]
+        Bob_Manager["🤖 IBM Bob Agent Swarm Manager (Agent Mode)"]
+        
+        subgraph Subagent_Swarm ["Parallel IBM Bob 2.0 Proxy Subagents"]
+            Bob_DB["🤖 Subagent Alpha: IBM Database Provisioner\n(CREATE SCHEMA app_xxxx in <200ms)"]
+            Bob_QA["🤖 Subagent Beta: IBM Watsonx QA Inspector\n(ESLint, Pytest, Secret Audit)"]
+            Bob_Docker["🤖 Subagent Gamma: IBM Code Engine & Docker Runner\n(Builds & Runs Container Fleet)"]
+            Bob_Tunnel["🤖 Subagent Delta: IBM Secrets Vault & Cloudflare SSL\n(cloudflared SSL Tunnel & Encrypted ENV)"]
+        end
+
+        API_Containers["Multi-Container Fleet\n- frontend (Host Port 3001)\n- backend (Host Port 8001)"]
+        API_SSE["SSE Real-time Log Streamer\n(GET /api/v1/projects/{id}/containers/{cid}/logs)"]
+        API_Telemetry["Docker & Code Engine Stats Poller\n(GET /api/v1/projects/{id}/containers/{cid}/stats)"]
     end
 
-    UI_Spec -->|JSON Prompts| API_Spec
-    UI_Deploy -->|Trigger Deploy + QA Flags| API_Orchestrator
-    API_Orchestrator -->|1. Run CREATE SCHEMA| Supabase
-    API_Orchestrator -->|2. Docker Build & Run -p {port}:3000| DockerEngine
-    API_Monitor -->|3. Docker Stats Polling| DockerEngine
-    API_Monitor -->|SSE Stream: CPU/RAM Stats| UI_Monitor
-    API_Orchestrator -->|SSE Stream: Build Logs| UI_Deploy
+    subgraph Mock_Engine ["24/7 Interactive Demo Engine (Vercel Host)"]
+        Mock_Logs["Simulated SSE Build & Terminal Stream"]
+        Mock_Preview["Pre-warmed App Preview Iframe"]
+        Mock_Stats["Simulated CPU/RAM Telemetry Data"]
+    end
+
+    %% Flow Connections
+    UI_Template --> Bob_Doc
+    Bob_Doc --> UI_SDD
+    UI_SDD --> UI_Approve
+    UI_Approve -- "Changes Requested" --> Bob_Doc
+    UI_Approve -- "Approved & Locked" --> UI_QA
+    UI_QA --> UI_Deploy
+    
+    UI_Deploy --> Router
+    
+    Router -- "DEMO_MODE = false\n(Pitch Video / Real Engine)" --> Bob_Manager
+    Router -- "DEMO_MODE = true\n(24/7 Vercel Hosting)" --> Mock_Engine
+
+    %% Real Engine Flow
+    Bob_Manager --> Bob_DB
+    Bob_Manager --> Bob_QA
+    Bob_Manager --> Bob_Docker
+    Bob_Manager --> Bob_Tunnel
+    
+    Bob_Docker --> API_Containers
+    Bob_Tunnel -->|Public HTTPS URL: https://app-8f92a.trycloudflare.com| UI_Playground
+    
+    API_Containers --> API_SSE
+    API_Containers --> API_Telemetry
+    API_SSE --> UI_Logs
+    API_Telemetry --> UI_Stats
+    Bob_Manager --> UI_History
+
+    %% Mock Engine Flow
+    Mock_Logs --> UI_Logs
+    Mock_Preview --> UI_Playground
+    Mock_Stats --> UI_Stats
+
+    %% Switcher and Hub
+    UI_Switcher --> UI_Playground
+    API_Containers --> UI_Hub
 ```
 
 ---
