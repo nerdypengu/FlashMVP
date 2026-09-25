@@ -1,0 +1,57 @@
+# -- Python --------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments (uv / venv / pyenv)
+.venv/
+venv/
+env/
+.python-version
+
+# uv lock is intentionally committed; ignore the cache
+.uv/
+
+# -- Node / Frontend -----------------------------------------------------------
+node_modules/
+frontend/dist/
+frontend/dist-ssr/
+*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# -- Editors & IDEs ------------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# -- OS ------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+
+# -- Environment / Secrets -----------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# -- Misc ----------------------------------------------------------------------
+*.sqlite
+*.sqlite3
