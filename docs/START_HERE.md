@@ -15,6 +15,9 @@ FlashMVP/
     ├── prd.md                           # Master Product Requirement Document
     ├── architecture-system-design.md    # Complete Technical Architecture Specification
     ├── knowledge/past-discussion.md     # 3-Day Hackathon Feasibility Analysis
+    ├── decisions/                       # Architectural Decision Records (ADRs)
+    │   ├── README.md                    # Decisions Index
+    │   └── 0001-backend-hosting-and-24-7-container-execution-strategy.md # ADR 0001: 24/7 Backend Hosting & Docker Blocker
     └── backlogs/                        # Feature-Driven Backlogs Directory
         ├── README.md                    # Master Backlog Index & Role Distribution
         ├── 10-specs-driven-development/ # Feature 1: SDD Engine & 3-Part Reviewer UI
@@ -70,7 +73,14 @@ User Prompt -> FlashMVP -> Auto-Provisions Supabase DB Schema + Container Playgr
 
 ---
 
-## 📄 3. Feature Directory Map & Role Workloads
+## 📄 3. Architectural Decisions (ADRs)
+
+* 📄 **[ADR 0001: Backend Hosting & 24/7 Container Execution Strategy](file:///f:/Hackathon/FlashMVP/docs/decisions/0001-backend-hosting-and-24-7-container-execution-strategy.md)** — Evaluates local laptop vs. GCP e2-micro Always Free VPS for 24/7 backend uptime, Docker socket access, and memory safeguards (10-min idle TTL).
+* 📄 **[ADR 0002: Dual-Mode Execution Strategy](file:///f:/Hackathon/FlashMVP/docs/decisions/0002-dual-mode-execution-strategy.md)** — Defines `DEMO_MODE=true` (interactive mock mode for 24/7 Vercel deployment) vs `DEMO_MODE=false` (real Docker/Supabase engine for video pitch).
+
+---
+
+## 📄 4. Feature Directory Map & Role Workloads
 
 Every feature folder in `docs/backlogs/` contains an architectural design specification (`00-design-*.md`), an overview (`00-overview.md`), and backlog items separated into **`backend/`** and **`frontend/`** subdirectories:
 
