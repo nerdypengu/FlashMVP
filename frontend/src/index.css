@@ -90,7 +90,3 @@ body {
   20%, 60% { transform: translateX(-4px); }
   40%, 80% { transform: translateX(4px); }
 }
-@keyframes qa-drawer-in {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
-}

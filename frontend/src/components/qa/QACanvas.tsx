@@ -5,6 +5,7 @@ import QAConnector from './QAConnector'
 import ContextMenu from './ContextMenu'
 import AddStepModal from './AddStepModal'
 import { runDemoSteps } from './runDemoSteps.js'
+import type { Run } from './RunHistoryTable'
 import './QACanvas.css'
 
 type NodeStatus = 'PENDING' | 'RUNNING' | 'PASSED' | 'FAILED' | 'SKIPPED'
@@ -20,11 +21,12 @@ type Step = {
   timeoutSeconds?: number
 }
 
-export default function QACanvas() {
+type Props = { nextRunNumber: number; onRunComplete: (run: Run) => void }
+
+export default function QACanvas({ nextRunNumber, onRunComplete }: Props) {
   const [steps, setSteps] = useState<Step[]>(() => mockData.steps.map(step => ({ ...step, status: 'PENDING' as NodeStatus })))
   const [running, setRunning] = useState(false)
   const [summary, setSummary] = useState<string | null>(null)
-  const [runNumber, setRunNumber] = useState(13)
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
   const [showModal, setShowModal] = useState(false)
 
@@ -46,8 +48,16 @@ export default function QACanvas() {
       const failStepId = simulateFailure ? enabledSteps[Math.min(1, enabledSteps.length - 1)].id : null
       const result = await runDemoSteps(steps, (id: string, status: NodeStatus, elapsed?: number) =>
         updateStep(id, { status, elapsed }), failStepId)
-      setSummary(`Run #${runNumber + 1} — ${result.status === 'PASSED' ? '🟢 All Passed' : '🔴 Failed'} (${(result.durationMs / 1000).toFixed(1)}s total)`)
-      setRunNumber(previous => previous + 1)
+      const run: Run = {
+        run_number: nextRunNumber,
+        branch: 'main',
+        status: result.status,
+        duration_seconds: Math.round(result.durationMs / 1000),
+        timestamp: new Date().toISOString(),
+        step_results: result.step_results,
+      }
+      onRunComplete(run)
+      setSummary(`Run #${nextRunNumber} — ${result.status === 'PASSED' ? '🟢 All Passed' : '🔴 Failed'} (${(result.durationMs / 1000).toFixed(1)}s total)`)
     } finally {
       setRunning(false)
     }
