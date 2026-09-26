@@ -21,6 +21,7 @@ import BinaryCanvasBackground from './components/ui/BinaryCanvasBackground'
 import { useAuth } from './context/AuthContext'
 import mockData from './mocks/qa_mock.json'
 import { DEMO_MODE, errorMessage, loadProjects, loadRuns, type Project } from './lib/person2Data'
+import { generateSpec, approveSpec, reviseSpec, type SpecResponse } from './lib/specsApi'
 
 const DEFAULT_SPEC: SpecData = {
   projectId: 'proj_8f92a', template: TEMPLATES[0],
@@ -50,6 +51,9 @@ export default function App() {
   const [dataError, setDataError] = useState('')
   const [reload, setReload] = useState(0)
   const [spec, setSpec] = useState<SpecData>(DEFAULT_SPEC)
+  const [apiSpec, setApiSpec] = useState<SpecResponse | null>(null)
+  const [specLoading, setSpecLoading] = useState(false)
+  const [specError, setSpecError] = useState('')
   const project = projects.find(item => item.id === projectId)
   const projectPage = ['/qa', '/history', '/playground', '/telemetry'].includes(location.pathname)
 
@@ -93,9 +97,50 @@ export default function App() {
   </DashboardLayout></RequireAuth>
 
   const card = (content: React.ReactNode) => dashboard(<div className="workspace-card glass-card page-enter">{content}</div>)
-  const generateSpec = (template: Template, prompt: string) => {
+
+  const handleGenerateSpec = async (template: Template, prompt: string) => {
     setSpec(previous => ({ ...previous, template, prompt, status: 'DRAFT' }))
+    setApiSpec(null)
+    setSpecError('')
+    setSpecLoading(true)
     navigate('/specs')
+    try {
+      const result = await generateSpec(prompt, template.id)
+      setApiSpec(result)
+    } catch (e: any) {
+      setSpecError(e?.message ?? 'Failed to generate spec. Is the backend running on port 8000?')
+    } finally {
+      setSpecLoading(false)
+    }
+  }
+
+  const handleApproveSpec = async () => {
+    if (!apiSpec) { setSpec(p => ({ ...p, status: 'APPROVED' })); navigate('/qa'); return }
+    try {
+      await approveSpec(apiSpec.feature_id)
+      setApiSpec(prev => prev ? { ...prev, status: 'APPROVED' } : prev)
+      setSpec(p => ({ ...p, status: 'APPROVED' }))
+      navigate('/qa')
+    } catch (e: any) {
+      setSpecError(e?.message ?? 'Approval failed.')
+    }
+  }
+
+  const handleReviseSpec = async (feedback: string) => {
+    if (!apiSpec) {
+      setSpec(p => ({ ...p, status: 'CHANGES_REQUESTED', requirements: `${p.requirements}\n\n## Revision\n- ${feedback}` }))
+      return
+    }
+    setSpecLoading(true)
+    setSpecError('')
+    try {
+      const result = await reviseSpec(apiSpec.feature_id, feedback, ['all'])
+      setApiSpec(result)
+    } catch (e: any) {
+      setSpecError(e?.message ?? 'Revision failed.')
+    } finally {
+      setSpecLoading(false)
+    }
   }
 
   return <Routes>
@@ -117,10 +162,16 @@ export default function App() {
     <Route path="/project/:projectId" element={card(<ProjectDetailsPage />)} />
     <Route path="/env-config" element={card(<EnvironmentConfigPage />)} />
     <Route path="/skill-pack" element={card(<SkillPackageInspector />)} />
-    <Route path="/starter" element={card(<TemplateSelector onGenerate={generateSpec} />)} />
-    <Route path="/specs" element={card(<SpecReviewer spec={spec}
-      onApprove={() => { setSpec(previous => ({ ...previous, status: 'APPROVED' })); navigate('/qa') }}
-      onRevise={feedback => setSpec(previous => ({ ...previous, status: 'CHANGES_REQUESTED', requirements: `${previous.requirements}\n\n## Revision Request\n- ${feedback}` }))} />)} />
+    <Route path="/starter" element={card(<TemplateSelector onGenerate={handleGenerateSpec} />)} />
+    <Route path="/specs" element={card(<SpecReviewer
+      spec={spec}
+      apiSpec={apiSpec}
+      loading={specLoading}
+      error={specError}
+      isLocked={apiSpec?.status === 'APPROVED' || spec.status === 'APPROVED'}
+      onApprove={handleApproveSpec}
+      onRevise={handleReviseSpec}
+    />)} />
     <Route path="/qa" element={card(<QACanvas key={projectId} runs={runs}
       nextRunNumber={Math.max(0, ...runs.map(run => run.run_number)) + 1}
       onRunComplete={run => setRuns(previous => [run, ...previous])} />)} />
