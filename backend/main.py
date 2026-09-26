@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+import os
 load_dotenv()  # loads backend/.env into os.environ before any skill reads it
 
 from fastapi import FastAPI
@@ -37,4 +38,5 @@ app.include_router(hub_router)
 
 @app.get("/")
 async def root():
-    return {"service": "FlashMVP API", "powered_by": "IBM Bob 2.0", "status": "ok"}
+    return {"service": "FlashMVP API", "powered_by": "IBM Bob 2.0", "status": "ok",
+            "demo_mode": os.getenv("DEMO_MODE", "true").lower() == "true"}
