@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import QACanvas from './components/qa/QACanvas'
 
 type Tab = 'qa' | 'history' | 'playground' | 'telemetry'
 
@@ -32,7 +33,7 @@ export default function App() {
         ))}
       </nav>
       <main className="app-content" aria-live="polite">
-        <h1>{TABS.find(tab => tab.id === activeTab)?.label}</h1>
+        {activeTab === 'qa' ? <QACanvas /> : <h1>{TABS.find(tab => tab.id === activeTab)?.label}</h1>}
       </main>
     </div>
   )
