@@ -1,0 +1,55 @@
+.wf-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  flex-wrap: wrap;
+}
+
+.wf-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  white-space: nowrap;
+}
+
+.wf-step:not(:last-child)::after {
+  content: '';
+  width: 28px;
+  height: 1px;
+  margin-left: 6px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.wf-step--done:not(:last-child)::after { background: rgba(15, 98, 254, 0.7); }
+
+.wf-step-dot {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 10.5px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.wf-step--done { color: rgba(255, 255, 255, 0.72); }
+.wf-step--done .wf-step-dot { background: var(--ibm-blue); border-color: var(--ibm-blue); color: #fff; }
+
+.wf-step--current { color: #fff; font-weight: 600; }
+.wf-step--current .wf-step-dot {
+  border-color: var(--ibm-blue);
+  color: #a6c8ff;
+  box-shadow: 0 0 0 3px rgba(15, 98, 254, 0.22);
+}
+
+@media (max-width: 640px) {
+  .wf-step-label { display: none; }
+  .wf-step--current .wf-step-label { display: inline; }
+}
