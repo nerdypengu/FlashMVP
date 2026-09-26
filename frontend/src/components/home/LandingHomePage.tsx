@@ -55,7 +55,7 @@ export default function LandingHomePage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 48, paddingBottom: 64, width: '100%', maxWidth: 1100, margin: '0 auto' }}>
-      
+
       {/* ── Hero Section ────────────────────────────────────────────── */}
       <div className="hero-overview" style={{ padding: '24px 0 0 0' }}>
         <div className="trust-row anim" style={{ '--d': '0.05s' } as React.CSSProperties}>

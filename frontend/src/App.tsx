@@ -1,281 +1,133 @@
-import { useEffect, useState, useRef } from 'react'
-import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Zap } from 'lucide-react'
-
-// ── Tool components ──────────────────────────────────────────────────────────
 import QACanvas from './components/qa/QACanvas'
 import RunHistoryTable, { type Run } from './components/qa/RunHistoryTable'
 import PlaygroundWindow from './components/playground/PlaygroundWindow'
 import TelemetryCharts from './components/telemetry/TelemetryCharts'
-import LogViewer from './components/playground/LogViewer'
 import TemplateSelector, { TEMPLATES, type Template } from './components/shell/TemplateSelector'
 import SpecReviewer, { type SpecData } from './components/sdd/SpecReviewer'
 import AppCatalog from './components/portal/AppCatalog'
 import ProjectsDashboard from './components/dashboard/ProjectsDashboard'
-import SkillPackageInspector from './components/sdd/SkillPackageInspector'
-import ProjectDetailsTelemetry from './components/dashboard/ProjectDetailsTelemetry'
 import ProjectDetailsPage from './components/dashboard/ProjectDetailsPage'
+import ProjectDetailsTelemetry from './components/dashboard/ProjectDetailsTelemetry'
 import EnvironmentConfigPage from './components/config/EnvironmentConfigPage'
+import SkillPackageInspector from './components/sdd/SkillPackageInspector'
 import LandingHomePage from './components/home/LandingHomePage'
-
-// ── Layout / auth ────────────────────────────────────────────────────────────
-import BinaryCanvasBackground from './components/ui/BinaryCanvasBackground'
-import TypewriterHero from './components/ui/TypewriterHero'
 import LoginPage from './components/auth/LoginPage'
 import RequireAuth from './components/auth/RequireAuth'
 import DashboardLayout from './components/shell/DashboardLayout'
+import BinaryCanvasBackground from './components/ui/BinaryCanvasBackground'
 import { useAuth } from './context/AuthContext'
 import mockData from './mocks/qa_mock.json'
+import { DEMO_MODE, errorMessage, loadProjects, loadRuns, type Project } from './lib/person2Data'
 
-// ── Default spec stub ────────────────────────────────────────────────────────
 const DEFAULT_SPEC: SpecData = {
-  projectId: 'proj_8f92a',
-  template: TEMPLATES[0],
-  prompt: 'E-commerce store with Supabase auth & Stripe checkout',
-  status: 'DRAFT',
-  requirements: `# FlashStore — E-Commerce Specification (PRD)\n\n## 1. Overview\nHigh-concurrency autonomous e-commerce engine.\n\n## 2. User Stories\n- US-01: Buyer browses and checks out via Stripe.\n- US-02: Admin inspects inventory and analytics.\n- US-03: Developer verifies container health and DB latency.\n\n## 3. Non-Functional Requirements\n- Supabase schema migration: < 200ms\n- Container boot: < 4.5s\n- Cloudflare SSL tunnel: zero manual DNS`,
-  architecture: `CREATE SCHEMA IF NOT EXISTS app_8f92a;\n\nCREATE TABLE app_8f92a.products (\n  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n  name VARCHAR(255) NOT NULL,\n  price_cents INTEGER NOT NULL,\n  stock_count INTEGER NOT NULL DEFAULT 0,\n  created_at TIMESTAMPTZ DEFAULT NOW()\n);`,
+  projectId: 'proj_8f92a', template: TEMPLATES[0],
+  prompt: 'E-commerce store with Supabase auth & Stripe checkout', status: 'DRAFT',
+  requirements: '# FlashStore\n\nBuyers browse products and check out; admins manage inventory.',
+  architecture: 'React frontend → FastAPI backend → PostgreSQL',
   ibmBindings: [
-    { tool: 'IBM Code Engine',         purpose: 'Serverless container fleet execution',                status: 'Ready' },
-    { tool: 'IBM Cloud DB',            purpose: 'Isolated multi-tenant PostgreSQL schema',            status: 'Ready' },
-    { tool: 'Cloudflare Quick Tunnel', purpose: 'Public HTTPS SSL egress URL',                        status: 'Ready' },
-    { tool: 'watsonx QA Inspector',    purpose: 'Autonomous ESLint, Pytest, and Secret leak auditing', status: 'Ready' },
+    { tool: 'IBM Code Engine', purpose: 'Container deployment', status: 'Ready' },
+    { tool: 'IBM Cloud DB', purpose: 'PostgreSQL', status: 'Ready' },
   ],
-  tasks: [
-    { id: 'TSK-01', title: 'Provision isolated PostgreSQL schema in IBM Cloud DB', subagent: 'Subagent Alpha (DB)',       estimate: '180ms' },
-    { id: 'TSK-02', title: 'Synthesize FastAPI router & Pydantic models',          subagent: 'Subagent Gamma (FastAPI)', estimate: '1.2s'  },
-    { id: 'TSK-03', title: 'Execute watsonx security & unit test audit',            subagent: 'Subagent Beta (QA)',       estimate: '2.6s'  },
-    { id: 'TSK-04', title: 'Launch dual container fleet & Cloudflare tunnel',       subagent: 'Subagent Delta (Tunnel)', estimate: '3.1s'  },
-  ],
+  tasks: [{ id: 'TSK-01', title: 'Provision the application', subagent: 'Bob', estimate: 'Pending' }],
 }
 
-// ── Public top-bar tabs (only shown on the public shell) ─────────────────────
-const PUBLIC_TABS = [
-  { path: '/', label: 'Home' },
-]
+function ProjectTelemetry({ project }: { project?: Project }) {
+  const { projectId } = useParams()
+  return DEMO_MODE ? <ProjectDetailsTelemetry /> : <TelemetryCharts project={project?.project_id === projectId ? project : undefined} />
+}
 
 export default function App() {
-  const navigate  = useNavigate()
-  const location  = useLocation()
-  const { user }  = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { user } = useAuth()
+  const [runs, setRuns] = useState<Run[]>(DEMO_MODE ? mockData.runs : [])
+  const [projects, setProjects] = useState<Project[]>([])
+  const [projectId, setProjectId] = useState('')
+  const [dataLoading, setDataLoading] = useState(false)
+  const [dataError, setDataError] = useState('')
+  const [reload, setReload] = useState(0)
+  const [spec, setSpec] = useState<SpecData>(DEFAULT_SPEC)
+  const project = projects.find(item => item.id === projectId)
+  const projectPage = ['/qa', '/history', '/playground', '/telemetry'].includes(location.pathname)
 
-  const [runs, setRuns]               = useState<Run[]>(mockData.runs)
-  const [spec, setSpec]               = useState<SpecData>(DEFAULT_SPEC)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [typingComplete, setTypingComplete] = useState(false)
-
-  useEffect(() => { setMobileMenuOpen(false) }, [location.pathname])
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMobileMenuOpen(false) }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [])
+    if (DEMO_MODE) return
+    let active = true
+    setProjects([]); setProjectId(''); setRuns([]); setDataError('')
+    if (!user) return
+    setDataLoading(true)
+    loadProjects().then(rows => {
+      if (active) { setProjects(rows); setProjectId(rows[0]?.id ?? '') }
+    }).catch(error => { if (active) setDataError(errorMessage(error)) })
+      .finally(() => { if (active) setDataLoading(false) })
+    return () => { active = false }
+  }, [user?.id, reload])
 
-  const handleGenerateSpec = (template: Template, prompt: string) => {
-    setSpec(prev => ({ ...prev, template, prompt, status: 'DRAFT' }))
+  useEffect(() => {
+    if (DEMO_MODE || !projectId) return
+    let active = true
+    setRuns([])
+    loadRuns(projectId).then(rows => { if (active) setRuns(rows) })
+      .catch(error => { if (active) setDataError(errorMessage(error)) })
+    return () => { active = false }
+  }, [projectId])
+
+  const dashboard = (content: React.ReactNode) => <RequireAuth><DashboardLayout>
+    {!DEMO_MODE && projectPage ? <>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16 }}>
+        <label htmlFor="workspace-project">Project</label>
+        <select id="workspace-project" className="modal-input" value={projectId} disabled={dataLoading || !projects.length}
+          onChange={event => { setProjectId(event.target.value); setDataError('') }}>
+          {!projects.length && <option value="">{dataLoading ? 'Loading…' : 'No accessible projects'}</option>}
+          {projects.map(item => <option key={item.id} value={item.id}>{item.app_name}</option>)}
+        </select>
+        <button type="button" className="btn btn--ghost" onClick={() => setReload(value => value + 1)}>Refresh</button>
+      </div>
+      {dataError && <p role="alert">{dataError}</p>}
+      {dataLoading ? <p role="status">Loading projects…</p> : project ? content :
+        <p>No project data is available. Create a project or ask its owner to add you as a member.</p>}
+    </> : content}
+  </DashboardLayout></RequireAuth>
+
+  const card = (content: React.ReactNode) => dashboard(<div className="workspace-card glass-card page-enter">{content}</div>)
+  const generateSpec = (template: Template, prompt: string) => {
+    setSpec(previous => ({ ...previous, template, prompt, status: 'DRAFT' }))
     navigate('/specs')
   }
-  const handleApproveSpec = () => {
-    setSpec(prev => ({ ...prev, status: 'APPROVED' }))
-    navigate('/qa')
-  }
-  const handleReviseSpec = (feedback: string) => {
-    setSpec(prev => ({
-      ...prev,
-      status: 'CHANGES_REQUESTED',
-      requirements: `${prev.requirements}\n\n## Revision Request\n- ${feedback}`,
-    }))
-  }
 
-  const isActive = (path: string) =>
-    path === '/' ? location.pathname === '/' : location.pathname.startsWith(path + '/')
-
-  const navRef = useRef<HTMLElement>(null)
-  const indicatorRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const nav = navRef.current
-    const indicator = indicatorRef.current
-    if (!nav || !indicator) return
-    const activeBtn = nav.querySelector<HTMLButtonElement>('.nav-link.active')
-    if (!activeBtn) return
-    const navRect = nav.getBoundingClientRect()
-    const btnRect = activeBtn.getBoundingClientRect()
-    indicator.style.width  = `${btnRect.width}px`
-    indicator.style.transform = `translateX(${btnRect.left - navRect.left - 5}px)`
-  }, [location.pathname])
-
-  // ── Dashboard routes share the same layout ──────────────────────────────
-  const dashboardElement = (child: React.ReactNode) => (
-    <RequireAuth>
-      <DashboardLayout>{child}</DashboardLayout>
-    </RequireAuth>
-  )
-
-  return (
-    <Routes>
-
-      {/* ════════════════════════════════════════════════════════════
-          PUBLIC SHELL  — top-bar nav, hero homepage, login
-      ════════════════════════════════════════════════════════════ */}
-      <Route path="/*" element={
-        <div className="app-shell">
-          <BinaryCanvasBackground />
-          <div className="page">
-
-            {/* Top-bar header — public only */}
-            <header className="header">
-              <button type="button" className="logo-btn" onClick={() => navigate('/')}
-                title="FlashMVP — Home">
-                <img src="/assets/logo.webp" alt="FlashMVP" width="52" height="52" />
-              </button>
-
-              <nav className="nav-pill" aria-label="Main Navigation" ref={navRef}>
-                <div className="nav-pill-indicator" ref={indicatorRef} />
-                {PUBLIC_TABS.map(tab => (
-                  <button
-                    key={tab.path}
-                    type="button"
-                    className={`nav-link ${isActive(tab.path) ? 'active' : ''}`}
-                    onClick={() => navigate(tab.path)}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </nav>
-
-              {user ? (
-                <button type="button" className="sign-in-btn"
-                  onClick={() => navigate('/dashboard')}>
-                  <Zap size={14} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 4 }} /> Dashboard
-                </button>
-              ) : (
-                <button type="button" className="sign-in-btn"
-                  onClick={() => navigate('/login')}>
-                  Sign In
-                </button>
-              )}
-
-              <button
-                type="button"
-                className={`burger-btn ${mobileMenuOpen ? 'open' : ''}`}
-                aria-label="Toggle navigation"
-                aria-expanded={mobileMenuOpen}
-                onClick={() => setMobileMenuOpen(v => !v)}
-              >
-                <span className="burger-bar" />
-                <span className="burger-bar" />
-                <span className="burger-bar" />
-              </button>
-            </header>
-
-            {/* Public page content */}
-            <main className="hero-workspace">
-              <Routes>
-
-                {/* Home — redirects to /dashboard if logged in, else renders LandingHomePage */}
-                <Route path="/" element={
-                  user ? <Navigate to="/dashboard" replace /> : <LandingHomePage />
-                } />
-
-                {/* Login — redirects to /dashboard if already signed in */}
-                <Route path="/login" element={
-                  user ? <Navigate to="/dashboard" replace /> : <LoginPage />
-                } />
-
-                {/* Catch-all inside public shell → home */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </main>
-
-          </div>
-
-          {/* Mobile drawer */}
-          {mobileMenuOpen && (
-            <>
-              <div className="mobile-overlay" onClick={() => setMobileMenuOpen(false)} />
-              <nav className="mobile-menu-sheet" aria-label="Mobile Navigation">
-                <button type="button" className="mobile-nav-link"
-                  onClick={() => { navigate('/'); setMobileMenuOpen(false) }}>
-                  Home
-                </button>
-                {user ? (
-                  <button type="button" className="mobile-sign-in"
-                    onClick={() => { navigate('/dashboard'); setMobileMenuOpen(false) }}>
-                    <Zap size={14} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 4 }} /> Dashboard
-                  </button>
-                ) : (
-                  <button type="button" className="mobile-sign-in"
-                    onClick={() => { navigate('/login'); setMobileMenuOpen(false) }}>
-                    <Zap size={14} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 4 }} /> Get Started
-                  </button>
-                )}
-              </nav>
-            </>
-          )}
-        </div>
-      } />
-
-      {/* ════════════════════════════════════════════════════════════
-          DASHBOARD SHELL  — sidebar layout, all protected routes
-      ════════════════════════════════════════════════════════════ */}
-
-      <Route path="/dashboard" element={dashboardElement(
-        <div className="workspace-card glass-card page-enter">
-          <ProjectsDashboard />
-        </div>
-      )} />
-
-      <Route path="/project/:projectId/details" element={dashboardElement(
-        <div className="workspace-card glass-card page-enter">
-          <ProjectDetailsPage />
-        </div>
-      )} />
-
-      <Route path="/project/:projectId/telemetry" element={dashboardElement(
-        <div className="workspace-card glass-card page-enter">
-          <ProjectDetailsTelemetry />
-        </div>
-      )} />
-
-      <Route path="/project/:projectId" element={dashboardElement(
-        <div className="workspace-card glass-card page-enter">
-          <ProjectDetailsPage />
-        </div>
-      )} />
-
-      <Route path="/env-config" element={dashboardElement(
-        <div className="workspace-card glass-card page-enter">
-          <EnvironmentConfigPage />
-        </div>
-      )} />
-
-      <Route path="/playground" element={dashboardElement(
-        <div className="workspace-card glass-card page-enter">
-          <PlaygroundWindow />
-        </div>
-      )} />
-
-      <Route path="/skill-pack" element={dashboardElement(
-        <div className="workspace-card glass-card page-enter">
-          <SkillPackageInspector />
-        </div>
-      )} />
-
-      <Route path="/specs" element={dashboardElement(
-        <div className="workspace-card glass-card page-enter">
-          <SkillPackageInspector />
-        </div>
-      )} />
-
-      <Route path="/qa" element={dashboardElement(
-        <div className="workspace-card glass-card page-enter">
-          <QACanvas
-            nextRunNumber={Math.max(0, ...runs.map(r => r.run_number)) + 1}
-            onRunComplete={run => setRuns(prev => [run, ...prev])}
-          />
-        </div>
-      )} />
-
-    </Routes>
-  )
+  return <Routes>
+    <Route path="/" element={user ? <Navigate to="/dashboard" replace /> :
+      <div className="app-shell"><BinaryCanvasBackground /><div className="page">
+        <header className="header">
+          <button type="button" className="logo-btn" onClick={() => navigate('/')} title="FlashMVP — Home">
+            <img src="/assets/logo.webp" alt="FlashMVP" width="52" height="52" />
+          </button>
+          <nav className="nav-pill" aria-label="Main Navigation"><button type="button" className="nav-link active">Home</button></nav>
+          <button type="button" className="sign-in-btn" onClick={() => navigate('/login')}><Zap size={14} /> Sign In</button>
+        </header>
+        <main className="hero-workspace"><LandingHomePage /></main>
+      </div></div>} />
+    <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
+    <Route path="/dashboard" element={card(<ProjectsDashboard />)} />
+    <Route path="/project/:projectId/details" element={card(<ProjectDetailsPage />)} />
+    <Route path="/project/:projectId/telemetry" element={card(<ProjectTelemetry project={projects.find(item => item.project_id === location.pathname.split('/')[2])} />)} />
+    <Route path="/project/:projectId" element={card(<ProjectDetailsPage />)} />
+    <Route path="/env-config" element={card(<EnvironmentConfigPage />)} />
+    <Route path="/skill-pack" element={card(<SkillPackageInspector />)} />
+    <Route path="/starter" element={card(<TemplateSelector onGenerate={generateSpec} />)} />
+    <Route path="/specs" element={card(<SpecReviewer spec={spec}
+      onApprove={() => { setSpec(previous => ({ ...previous, status: 'APPROVED' })); navigate('/qa') }}
+      onRevise={feedback => setSpec(previous => ({ ...previous, status: 'CHANGES_REQUESTED', requirements: `${previous.requirements}\n\n## Revision Request\n- ${feedback}` }))} />)} />
+    <Route path="/qa" element={card(<QACanvas key={projectId} runs={runs}
+      nextRunNumber={Math.max(0, ...runs.map(run => run.run_number)) + 1}
+      onRunComplete={run => setRuns(previous => [run, ...previous])} />)} />
+    <Route path="/history" element={card(<RunHistoryTable runs={runs} />)} />
+    <Route path="/playground" element={card(<PlaygroundWindow key={projectId} project={project} />)} />
+    <Route path="/telemetry" element={card(<div className="telemetry-layout"><TelemetryCharts key={projectId} project={project} /></div>)} />
+    <Route path="/hub" element={card(<AppCatalog onOpenPlayground={() => navigate('/playground')} />)} />
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Routes>
 }

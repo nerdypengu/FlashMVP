@@ -1,5 +1,7 @@
 # Backlog Item: BL-QA-03 - Workflow Run History & Detail Inspector UI
-> **Feature:** QA Pipeline Workflow | **Layer:** Frontend (`client/src/components/qa/RunHistoryTable.jsx`)
+> **Feature:** QA Pipeline Workflow | **Layer:** Frontend (`frontend/src/components/qa/RunHistoryTable.tsx`)
+
+**Frontend demo status:** Implemented. New simulated runs appear in history with step snapshots; log text is demo-only. Backend audit-log integration remains pending (Person 3).
 
 ---
 
@@ -9,8 +11,8 @@ Build the **Vercel / GitHub Actions style Run History Table** and the **Run Deta
 ---
 
 ## 🛠️ File Locations & Component Specs
-* **Table Component:** `client/src/components/qa/RunHistoryTable.jsx`
-* **Inspector Drawer:** `client/src/components/qa/RunDetailInspector.jsx`
+* **Table Component:** `frontend/src/components/qa/RunHistoryTable.tsx`
+* **Inspector Drawer:** `frontend/src/components/qa/RunDetailInspector.tsx`
 
 ---
 

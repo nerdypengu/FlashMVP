@@ -56,7 +56,7 @@ export default function EnvironmentConfigPage() {
       </div>
 
       <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        
+
         {/* IBM Cloud & Secrets Manager Section */}
         <div style={{
           padding: 22, borderRadius: 16, background: 'rgba(15, 17, 26, 0.85)',

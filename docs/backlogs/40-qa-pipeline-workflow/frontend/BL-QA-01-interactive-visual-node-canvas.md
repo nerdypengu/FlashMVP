@@ -2,7 +2,9 @@
 > **Assigned To:** 📊 **Person 2** — QA Canvas & Observability Specialist  
 > **Feature:** QA Pipeline Workflow | **Layer:** Frontend  
 > **IBM Bob 2.0 Context:** Visualises IBM Bob `bob-skill-watsonx-qa` running ESLint, Pytest, and IBM Watsonx Security Audit  
-> **File:** `client/src/components/qa/QACanvas.jsx`
+> **File:** `frontend/src/components/qa/QACanvas.tsx`
+
+**Frontend demo status:** Implemented. Passing and failing runs update the canvas and the in-memory run history; disabled and post-failure steps show `SKIPPED`. Backend QA integration remains pending (Person 3).
 
 ---
 
@@ -16,11 +18,11 @@ Before deployment, IBM Bob 2.0's **Subagent Beta** executes the `bob-skill-watso
 
 | File | Purpose |
 | :--- | :--- |
-| `client/src/components/qa/QACanvas.jsx` | Main canvas wrapper |
-| `client/src/components/qa/QANodeCard.jsx` | Individual step node card |
-| `client/src/components/qa/QAConnector.jsx` | Animated arrow connecting nodes |
-| `client/src/components/qa/QACanvas.css` | Styles for the canvas and nodes |
-| `client/src/mocks/qa_mock.json` | DEMO_MODE mock QA run data |
+| `frontend/src/components/qa/QACanvas.tsx` | Main canvas wrapper |
+| `frontend/src/components/qa/QANodeCard.tsx` | Individual step node card |
+| `frontend/src/components/qa/QAConnector.tsx` | Animated arrow connecting nodes |
+| `frontend/src/components/qa/QACanvas.css` | Styles for the canvas and nodes |
+| `frontend/src/mocks/qa_mock.json` | DEMO_MODE mock QA run data |
 
 ---
 

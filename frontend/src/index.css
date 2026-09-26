@@ -24,6 +24,21 @@
   --radius: 12px;
 }
 
+.sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 0; border: 0; background: transparent; color: var(--text); font: inherit; cursor: pointer; border-radius: 10px; }
+.sidebar-brand-mark { display: grid; place-items: center; flex: 0 0 36px; width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(145deg, var(--ibm-blue), #0043ce); border: 1px solid #ffffff26; box-shadow: inset 0 1px 0 #ffffff26, 0 4px 12px #0f62fe26; }
+.sidebar-brand-name { font-size: 17px; font-weight: 700; letter-spacing: -.6px; white-space: nowrap; }
+.sidebar-brand-name > span { color: #a6c8ff; font-weight: 500; }
+.sidebar-brand:hover .sidebar-brand-mark { border-color: #ffffff66; }
+.sidebar-brand:focus-visible { outline: 2px solid var(--ibm-blue); outline-offset: 5px; }
+.dashboard-sidebar { transition: width .32s cubic-bezier(.22,1,.36,1), min-width .32s cubic-bezier(.22,1,.36,1); }
+.sidebar-label { flex-shrink: 0; transition: opacity .2s ease, transform .32s cubic-bezier(.22,1,.36,1); }
+.dashboard-sidebar.is-collapsed .sidebar-label { opacity: 0; transform: translateX(-8px); pointer-events: none; }
+.sidebar-toggle { position: absolute; top: 20px; z-index: 30; display: grid; place-items: center; width: 32px; height: 32px; transform: translateX(-50%); border: 1px solid #ffffff26; border-radius: 50%; background: #111522; color: #a6c8ff; box-shadow: 0 4px 16px #0006; cursor: pointer; transition: left .32s cubic-bezier(.22,1,.36,1), background .15s, border-color .15s; }
+.sidebar-toggle:hover { background: #1c2940; border-color: var(--ibm-blue); }
+.sidebar-toggle:focus-visible { outline: 2px solid var(--ibm-blue); outline-offset: 3px; }
+.sidebar-toggle svg { transition: transform .32s cubic-bezier(.22,1,.36,1); }
+@media (prefers-reduced-motion: reduce) { .dashboard-sidebar, .sidebar-label, .sidebar-toggle, .sidebar-toggle svg { transition: none; } }
+
 /* ── Fallback Font Face ────────────────────────────────────────── */
 @font-face {
   font-family: "Geist Pixel Circle";

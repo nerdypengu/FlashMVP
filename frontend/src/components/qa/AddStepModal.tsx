@@ -2,41 +2,50 @@ import { useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
 
 type AddStepModalProps = {
-  onAdd: (step: { id: string; name: string; command: string; durationMs: number; timeoutSeconds: number; enabled: boolean; status: string }) => void
+  stages: readonly string[]
+  initialStep?: { id: string; name: string; command: string; stage: string; timeoutSeconds?: number; enabled: boolean }
+  onAdd: (step: { id: string; name: string; command: string; durationMs: number; timeoutSeconds: number; enabled: boolean; status: string; stage: string }) => Promise<boolean>
   onClose: () => void
 }
 
-export default function AddStepModal({ onAdd, onClose }: AddStepModalProps) {
-  const [name, setName] = useState('')
-  const [command, setCommand] = useState('')
-  const [timeout, setTimeout_] = useState(30)
+export default function AddStepModal({ stages, initialStep, onAdd, onClose }: AddStepModalProps) {
+  const [name, setName] = useState(initialStep?.name ?? '')
+  const [command, setCommand] = useState(initialStep?.command ?? '')
+  const [timeout, setTimeout_] = useState(initialStep?.timeoutSeconds ?? 30)
+  const [stage, setStage] = useState(initialStep?.stage ?? stages[0])
+  const [saving, setSaving] = useState(false)
+  const [saveFailed, setSaveFailed] = useState(false)
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !saving) onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, saving])
 
-  const handleSubmit = () => {
-    if (!name.trim() || !command.trim() || !Number.isFinite(timeout) || timeout < 1) return
-    onAdd({
-      id: `custom-${crypto.randomUUID()}`,
+  const handleSubmit = async () => {
+    if (saving || !name.trim() || !command.trim() || !Number.isInteger(timeout) || timeout < 1) return
+    setSaving(true)
+    const saved = await onAdd({
+      id: initialStep?.id ?? `custom-${crypto.randomUUID()}`,
       name: name.trim(),
       command: command.trim(),
       durationMs: 800,
       timeoutSeconds: timeout,
-      enabled: true,
+      enabled: initialStep?.enabled ?? true,
       status: 'PENDING',
+      stage,
     })
-    onClose()
+    setSaving(false)
+    setSaveFailed(!saved)
+    if (saved) onClose()
   }
 
   return (
-    <div className="modal-overlay" onMouseDown={onClose}>
+    <div className="modal-overlay" onMouseDown={() => { if (!saving) onClose() }}>
       <div className="modal-box" role="dialog" aria-modal="true" aria-labelledby="add-step-title" onMouseDown={e => e.stopPropagation()}>
         <div className="modal-title" id="add-step-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Plus size={16} color="#0F62FE" />
-          <span>Add Custom QA Step</span>
+          <span>{initialStep ? 'Edit QA Step' : 'Add Custom QA Step'}</span>
         </div>
 
         <div className="modal-field">
@@ -63,6 +72,13 @@ export default function AddStepModal({ onAdd, onClose }: AddStepModalProps) {
         </div>
 
         <div className="modal-field">
+          <label htmlFor="qa-step-stage">Stage</label>
+          <select id="qa-step-stage" className="modal-input" value={stage} onChange={e => setStage(e.target.value)}>
+            {stages.map(option => <option key={option} value={option}>{option}</option>)}
+          </select>
+        </div>
+
+        <div className="modal-field">
           <label htmlFor="qa-step-timeout">Timeout (seconds)</label>
           <input
             id="qa-step-timeout"
@@ -74,10 +90,11 @@ export default function AddStepModal({ onAdd, onClose }: AddStepModalProps) {
           />
         </div>
 
+        {saveFailed && <p role="alert">Gagal menyimpan. Periksa koneksi dan izin database, lalu coba kembali.</p>}
         <div className="modal-actions">
-          <button className="btn btn--ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn--primary" onClick={handleSubmit} disabled={!name.trim() || !command.trim() || !Number.isFinite(timeout) || timeout < 1}>
-            Add to Pipeline
+          <button className="btn btn--ghost" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="btn btn--primary" onClick={handleSubmit} disabled={saving || !name.trim() || !command.trim() || !Number.isInteger(timeout) || timeout < 1}>
+            {saving ? 'Saving…' : initialStep ? 'Save changes' : 'Add to Pipeline'}
           </button>
         </div>
       </div>

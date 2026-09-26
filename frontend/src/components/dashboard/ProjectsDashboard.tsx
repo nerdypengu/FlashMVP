@@ -34,7 +34,7 @@ export default function ProjectsDashboard() {
   const [projects, setProjects] = useState<Project[]>(initialProjects as Project[])
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'RUNNING' | 'STOPPED'>('ALL')
-  
+
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
@@ -92,12 +92,12 @@ export default function ProjectsDashboard() {
       setDeployStep(step => {
         if (step >= deployStepsText.length - 1) {
           clearInterval(stepInterval)
-          
+
           // Finish creation
           const chosenTemplate = TEMPLATES.find(t => t.id === selectedTemplateId) || TEMPLATES[0]
           const createdRepo = newRepoName.trim() || `ibmbob-dev/${newProjectName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`
           const id = `proj_${Math.random().toString(36).substring(2, 7)}`
-          
+
           const newProj: Project = {
             id,
             name: newProjectName,
@@ -140,7 +140,7 @@ export default function ProjectsDashboard() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, paddingBottom: 32 }}>
-      
+
       {/* ── Top Header Banner ───────────────────────────────────────── */}
       <div style={{
         display: 'flex',

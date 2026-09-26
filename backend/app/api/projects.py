@@ -9,7 +9,9 @@ import asyncio
 import os
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from fastapi.security import HTTPAuthorizationCredentials
+from app.services.person2_store import bearer, user_token, get_project, get_services
 from pydantic import BaseModel
 
 from app.schemas.project import ProjectCreateRequest, ProjectCreateResponse
@@ -32,6 +34,12 @@ class DeployResponse(BaseModel):
     status: str
     deployment_url: str | None = None
     message: str
+
+
+@router.get("/{project_id}/services")
+async def list_services(project_id: str, credentials: HTTPAuthorizationCredentials | None = Depends(bearer)):
+    token = user_token(credentials)
+    return await get_services(await get_project(project_id, token), token)
 
 
 @router.post("/create", response_model=ProjectCreateResponse, status_code=201)
