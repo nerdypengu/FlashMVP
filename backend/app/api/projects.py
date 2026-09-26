@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from app.schemas.project import ProjectCreateRequest, ProjectCreateResponse
 from app.schemas.run import QAStepResult
 from app.services import run_store, spec_generator
 
@@ -31,6 +32,23 @@ class DeployResponse(BaseModel):
     status: str
     deployment_url: str | None = None
     message: str
+
+
+@router.post("/create", response_model=ProjectCreateResponse, status_code=201)
+async def create_project(body: ProjectCreateRequest) -> ProjectCreateResponse:
+    """
+    BL-INF-01: Provision an isolated PostgreSQL schema for a new project.
+    Calls bob-skill-cloud-db to execute CREATE SCHEMA app_{project_id} in < 200ms.
+    """
+    from app.bob import skill_cloud_db
+    result = await skill_cloud_db.provision_schema(body.project_id)
+    return ProjectCreateResponse(
+        project_id=body.project_id,
+        schema_name=result["schema_name"],
+        execution_time_ms=result["execution_time_ms"],
+        connection_url=result["connection_url"],
+        status=result["status"],
+    )
 
 
 @router.post("/{project_id}/deploy", response_model=DeployResponse)

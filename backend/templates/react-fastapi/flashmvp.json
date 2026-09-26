@@ -1,0 +1,19 @@
+{
+  "name": "react-fastapi",
+  "template": "react-fastapi",
+  "ibm_bindings": {
+    "ibm_code_engine": true,
+    "ibm_postgres_db": true,
+    "ibm_secrets_manager": true,
+    "ibm_watsonx_qa": true
+  },
+  "services": [
+    { "name": "frontend", "dockerfile": "Dockerfile.frontend", "port": 3000 },
+    { "name": "backend",  "dockerfile": "Dockerfile.backend",  "port": 8000 }
+  ],
+  "qa_pipeline": [
+    { "id": "lint",     "name": "ESLint",                    "command": "npm run lint" },
+    { "id": "test",     "name": "Pytest",                    "command": "pytest" },
+    { "id": "security", "name": "IBM Watsonx Security Scan", "command": "bob skill watsonx-qa --scan" }
+  ]
+}
