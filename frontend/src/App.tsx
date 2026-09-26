@@ -12,7 +12,6 @@ import QACanvas from "./components/qa/QACanvas";
 import RunHistoryTable, { type Run } from "./components/qa/RunHistoryTable";
 import PlaygroundWindow from "./components/playground/PlaygroundWindow";
 import TelemetryCharts from "./components/telemetry/TelemetryCharts";
-import LogViewer from "./components/playground/LogViewer";
 import TemplateSelector, {
   TEMPLATES,
   type Template,
@@ -28,6 +27,15 @@ import RequireAuth from "./components/auth/RequireAuth";
 import DashboardLayout from "./components/shell/DashboardLayout";
 import { useAuth } from "./context/AuthContext";
 import mockData from "./mocks/qa_mock.json";
+import { DEMO_MODE, errorMessage, loadProjects, loadRuns, type Project } from "./lib/person2Data";
+
+const DASHBOARD_ICON = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+    style={{ marginRight: 8, verticalAlign: "middle", flexShrink: 0 }}>
+    <path d="M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z" />
+  </svg>
+);
 
 // ── Default spec stub ────────────────────────────────────────────────────────
 const DEFAULT_SPEC: SpecData = {
@@ -95,7 +103,36 @@ export default function App() {
   const location = useLocation();
   const { user } = useAuth();
 
-  const [runs, setRuns] = useState<Run[]>(mockData.runs);
+  const [runs, setRuns] = useState<Run[]>(DEMO_MODE ? mockData.runs : []);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectId, setProjectId] = useState('');
+  const [dataLoading, setDataLoading] = useState(false);
+  const [dataError, setDataError] = useState('');
+  const [dataReload, setDataReload] = useState(0);
+  const project = projects.find(item => item.id === projectId);
+  const isPerson2Page = ['/qa', '/history', '/playground', '/telemetry'].includes(location.pathname);
+
+  useEffect(() => {
+    if (DEMO_MODE) return;
+    let active = true;
+    setProjects([]); setProjectId(''); setRuns([]); setDataError('');
+    if (!user) return;
+    setDataLoading(true);
+    loadProjects().then(rows => {
+      if (active) { setProjects(rows); setProjectId(rows[0]?.id ?? ''); }
+    }).catch(error => { if (active) setDataError(errorMessage(error)); })
+      .finally(() => { if (active) setDataLoading(false); });
+    return () => { active = false; };
+  }, [user?.id, dataReload]);
+
+  useEffect(() => {
+    if (DEMO_MODE || !projectId) return;
+    let active = true;
+    setRuns([]);
+    loadRuns(projectId).then(rows => { if (active) setRuns(rows); })
+      .catch(error => { if (active) setDataError(errorMessage(error)); });
+    return () => { active = false; };
+  }, [projectId]);
   const [spec, setSpec] = useState<SpecData>(DEFAULT_SPEC);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [typingComplete, setTypingComplete] = useState(false);
@@ -149,7 +186,22 @@ export default function App() {
   // ── Dashboard routes share the same layout ──────────────────────────────
   const dashboardElement = (child: React.ReactNode) => (
     <RequireAuth>
-      <DashboardLayout>{child}</DashboardLayout>
+      <DashboardLayout>
+        {!DEMO_MODE && isPerson2Page ? <>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+            <label htmlFor="person2-project">Project</label>
+            <select id="person2-project" className="modal-input" value={projectId} disabled={dataLoading || !projects.length}
+              onChange={event => { setProjectId(event.target.value); setDataError(''); }}>
+              {!projects.length && <option value="">{dataLoading ? 'Loading…' : 'No accessible projects'}</option>}
+              {projects.map(item => <option key={item.id} value={item.id}>{item.app_name}</option>)}
+            </select>
+            <button type="button" className="btn btn--ghost" disabled={dataLoading} onClick={() => setDataReload(value => value + 1)}>Refresh</button>
+          </div>
+          {dataError && <p role="alert" style={{ color: 'var(--red-fail)', marginBottom: 12 }}>{dataError}</p>}
+          {dataLoading ? <p role="status">Loading projects…</p> : project ? child :
+            <p>No project data is available. Create a project or ask its owner to add you as a member.</p>}
+        </> : child}
+      </DashboardLayout>
     </RequireAuth>
   );
 
@@ -204,7 +256,7 @@ export default function App() {
                     className="sign-in-btn"
                     onClick={() => navigate("/dashboard")}
                   >
-                    ⚡ Dashboard
+                    {DASHBOARD_ICON} Dashboard
                   </button>
                 ) : (
                   <button
@@ -313,7 +365,7 @@ export default function App() {
                               className="cta-btn"
                               onClick={() => navigate("/dashboard")}
                             >
-                              ⚡ Go to Dashboard
+                              {DASHBOARD_ICON} Go to Dashboard
                             </button>
                           ) : (
                             <>
@@ -440,7 +492,7 @@ export default function App() {
                         setMobileMenuOpen(false);
                       }}
                     >
-                      ⚡ Dashboard
+                      {DASHBOARD_ICON} Dashboard
                     </button>
                   ) : (
                     <button
@@ -501,6 +553,7 @@ export default function App() {
         element={dashboardElement(
           <div className="workspace-card glass-card page-enter">
             <QACanvas
+              key={projectId}
               nextRunNumber={Math.max(0, ...runs.map((r) => r.run_number)) + 1}
               onRunComplete={(run) => setRuns((prev) => [run, ...prev])}
             />
@@ -521,7 +574,7 @@ export default function App() {
         path="/playground"
         element={dashboardElement(
           <div className="workspace-card glass-card page-enter">
-            <PlaygroundWindow />
+            <PlaygroundWindow key={projectId} project={project} />
           </div>,
         )}
       />
@@ -531,8 +584,7 @@ export default function App() {
         element={dashboardElement(
           <div className="workspace-card glass-card page-enter telemetry-viewport">
             <div className="telemetry-layout">
-              <TelemetryCharts />
-              <LogViewer />
+              <TelemetryCharts key={projectId} project={project} />
             </div>
           </div>,
         )}

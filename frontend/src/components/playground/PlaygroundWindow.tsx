@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import ServiceSwitcher from './ServiceSwitcher'
 import DatabaseSchema from './DatabaseSchema'
+import { DEMO_MODE, errorMessage, loadServices, type Project, type ServiceRecord } from '../../lib/person2Data'
 
 type Viewport = 'desktop' | 'tablet' | 'mobile'
 
@@ -16,11 +17,49 @@ const SERVICE_URLS: Record<string, string> = {
   db: 'https://supabase.com/dashboard/project/proj_8f92a',
 }
 
-export default function PlaygroundWindow() {
+export default function PlaygroundWindow({ project }: { project?: Project }) {
   const [service, setService] = useState('frontend')
   const [viewport, setViewport] = useState<Viewport>('desktop')
   const [useLiveIframe, setUseLiveIframe] = useState(false)
   const currentUrl = SERVICE_URLS[service]
+  const [services, setServices] = useState<ServiceRecord[]>([])
+  const [loading, setLoading] = useState(!DEMO_MODE)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (DEMO_MODE || !project) return
+    let active = true
+    loadServices(project.id).then(rows => { if (active) setServices(rows) })
+      .catch(error => { if (active) setError(errorMessage(error)) })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [project?.id])
+
+  if (!DEMO_MODE) {
+    const selected = services.find(item => item.service_type === service)
+    const url = selected?.url
+    const safeUrl = url && /^https?:\/\//i.test(url) ? url : null
+    return <div>
+      <ServiceSwitcher activeService={service} onSwitch={setService} />
+      <div style={{ padding: 16, border: '1px solid var(--glass-border)', borderRadius: 8 }}>
+        <h3>{project?.app_name} · {service}</h3>
+        {loading && <p role="status">Loading services…</p>}
+        {error && <p role="alert" style={{ color: 'var(--red-fail)' }}>{error}</p>}
+        {service === 'db' && <p>Database schema: <code>{project?.db_schema ?? 'Not configured'}</code></p>}
+        {!loading && !error && !selected && <p>No {service} service has been configured for this project.</p>}
+        {safeUrl && <a href={safeUrl} target="_blank" rel="noopener noreferrer">Open {service}</a>}
+        {safeUrl && service !== 'db' && <>
+          <div style={{ display: 'flex', gap: 6, margin: '12px 0' }}>
+            {(Object.keys(VIEWPORTS) as Viewport[]).map(value => <button type="button" key={value} className="btn btn--ghost" aria-pressed={viewport === value} onClick={() => setViewport(value)}>{value}</button>)}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', overflow: 'auto' }}>
+            <iframe src={safeUrl} title={`${project?.app_name} ${service}`} style={{ width: VIEWPORTS[viewport], maxWidth: '100%', height: 480, border: 0 }} />
+          </div>
+        </>}
+        {selected && !safeUrl && <p>This service has no valid HTTP preview URL yet.</p>}
+      </div>
+    </div>
+  }
 
   return (
     <div className="playground-container" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>

@@ -77,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ── Restore session on mount ───────────────────────────────────────────────
   useEffect(() => {
     if (DEMO_MODE) return   // demo mode: skip session restore
+    if (!supabase) { setState({ user: null, role: null, loading: false }); return }
 
     supabase?.auth.getSession().then(async ({ data }) => {
       const user = data.session?.user ?? null
@@ -86,10 +87,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Listen for sign-in / sign-out / token refresh events
     const { data: listener } = supabase?.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
         const user = session?.user ?? null
-        const role = user ? await fetchRole(user.id) : null
-        setState({ user, role, loading: false })
+        setState({ user, role: null, loading: !!user })
+        // Return immediately: awaiting a Supabase query inside this callback
+        // holds the Auth lock and can deadlock the profile request.
+        if (user) void fetchRole(user.id).then(role => setState(previous =>
+          previous.user?.id === user.id ? { user, role, loading: false } : previous))
       }
     ) ?? { data: null }
 
