@@ -9,7 +9,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const location = useLocation()
   const { projectId } = useParams()
   const { user, role, signOut } = useAuth()
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 900)
   const isProjectView = location.pathname.startsWith('/project/') ||
     ['/qa', '/history', '/playground', '/telemetry', '/env-config', '/specs', '/starter', '/skill-pack'].includes(location.pathname)
   const items = [
