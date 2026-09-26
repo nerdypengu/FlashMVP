@@ -1,0 +1,91 @@
+{
+  "name": "standard",
+  "description": "Standard FlashMVP IBM Bob 2.0 application with full DB relations, Auth, and QA Suite",
+  "features": [
+    "auth",
+    "rbac",
+    "relational-db",
+    "file-storage",
+    "watsonx-qa-full",
+    "code-engine-deployment"
+  ],
+  "architecture": {
+    "description": "Full-stack web application with React SPA, REST backend container on IBM Code Engine, and managed PostgreSQL",
+    "frontend": "React 18 + Vite + Lucide icons + Recharts telemetry",
+    "backend": "Express / Python FastAPI with SQL migrations",
+    "database": "IBM Databases for PostgreSQL",
+    "vault": "IBM Secrets Manager for API keys and JWT secrets"
+  },
+  "environment": {
+    "required": [
+      {
+        "name": "DATABASE_URL",
+        "description": "IBM Databases for PostgreSQL connection URI"
+      },
+      {
+        "name": "IBM_SECRETS_VAULT_KEY",
+        "description": "API Key for IBM Cloud Secrets Manager"
+      },
+      {
+        "name": "CODE_ENGINE_PROJECT_ID",
+        "description": "IBM Cloud Code Engine project deployment target"
+      }
+    ],
+    "optional": [
+      {
+        "name": "LOG_LEVEL",
+        "description": "Logging level (default: info)"
+      }
+    ]
+  },
+  "structure": {
+    "directories": [
+      "src/components/dashboard",
+      "src/components/qa",
+      "src/components/shell",
+      "src/services",
+      "src/mocks",
+      "server/api",
+      "server/middleware",
+      "docs/prd.md",
+      "docs/requirements",
+      "docs/architecture-system-design.md",
+      "docs/backlogs",
+      "docs/decisions",
+      "docs/knowledge",
+      ".bob/skills",
+      ".bob/settings"
+    ],
+    "note": "Standard multi-container directory hints for agent swarms."
+  },
+  "dependencies": {
+    "production": [
+      "react@^18.2.0",
+      "react-dom@^18.2.0",
+      "express@^4.18.2",
+      "pg@^8.11.0",
+      "recharts@^2.12.0",
+      "lucide-react@^0.344.0"
+    ],
+    "development": [
+      "typescript@^5.2.2",
+      "vite@^5.1.0",
+      "vitest@^1.3.0",
+      "eslint@^8.56.0"
+    ]
+  },
+  "bobInstructions": {
+    "projectType": "standard",
+    "criticalRules": [
+      "🔴 SPEC-DRIVEN: Maintain prd.md, requirements, architecture, ADRs, and backlogs",
+      "🔴 QA-VERIFIED: Execute .watsonx-qa.yml verification after code edits",
+      "🔴 CONTAINERS: Build & deploy via bob-skill-code-engine"
+    ],
+    "features": [
+      "Multi-table PostgreSQL migrations",
+      "Role-Based Access Control (RBAC)",
+      "Automated Watsonx security & ESLint auditor",
+      "Per-project telemetry SSE integration"
+    ]
+  }
+}

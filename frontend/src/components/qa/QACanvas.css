@@ -32,12 +32,17 @@
   border: 1px solid rgba(255,255,255,0.22);
   border-radius: var(--radius);
   padding: 14px 18px;
-  min-width: 160px;
+  min-width: 230px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
   position: relative;
+}
+.qa-node-card:hover {
+  border-color: var(--ibm-blue);
+  box-shadow: 0 4px 20px rgba(15, 98, 254, 0.2);
+  transform: translateY(-2px);
 }
 .qa-node-card--running {
   border-color: var(--ibm-blue);

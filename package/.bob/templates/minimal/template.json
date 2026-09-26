@@ -1,0 +1,77 @@
+{
+  "name": "minimal",
+  "description": "Minimal FlashMVP IBM Bob 2.0 application with basic CRUD, DB, and Auth",
+  "features": [
+    "auth",
+    "single-collection",
+    "basic-crud",
+    "watsonx-qa-basic"
+  ],
+  "architecture": {
+    "description": "Two-tier microservice architecture: Frontend connects to IBM Code Engine API container",
+    "frontend": "React + Vite SPA with IBM Bob UI components",
+    "backend": "Node.js / Express API container hosted on IBM Code Engine",
+    "database": "IBM Databases for PostgreSQL"
+  },
+  "environment": {
+    "required": [
+      {
+        "name": "DATABASE_URL",
+        "description": "IBM Databases for PostgreSQL connection string"
+      },
+      {
+        "name": "FLASHMVP_API_URL",
+        "description": "Backend API URL on IBM Code Engine"
+      }
+    ],
+    "optional": [
+      {
+        "name": "APP_TITLE",
+        "description": "Application display title"
+      }
+    ]
+  },
+  "structure": {
+    "directories": [
+      "src/components",
+      "src/pages",
+      "server/routes",
+      "server/controllers",
+      "docs/prd.md",
+      "docs/requirements",
+      "docs/architecture-system-design.md",
+      "docs/backlogs",
+      "docs/decisions",
+      "docs/knowledge",
+      ".bob/skills"
+    ],
+    "note": "Directory structure hints for IBM Bob 2.0 agent swarms."
+  },
+  "dependencies": {
+    "production": [
+      "react@^18.2.0",
+      "react-dom@^18.2.0",
+      "express@^4.18.2",
+      "pg@^8.11.0",
+      "lucide-react@^0.344.0"
+    ],
+    "development": [
+      "typescript@^5.2.2",
+      "vite@^5.1.0",
+      "eslint@^8.56.0"
+    ]
+  },
+  "bobInstructions": {
+    "projectType": "minimal",
+    "criticalRules": [
+      "🔴 SPEC-FIRST: Generate specs in docs/ before generating code",
+      "🔴 BOB-SKILL-DRIVEN: Execute database migrations via bob-skill-cloud-db",
+      "🔴 ZERO-TRUST: Fetch database secrets via bob-skill-secrets-vault"
+    ],
+    "features": [
+      "Basic REST CRUD endpoints",
+      "PostgreSQL schema initialization",
+      "Watsonx QA validation"
+    ]
+  }
+}

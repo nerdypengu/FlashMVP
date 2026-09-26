@@ -1,3 +1,5 @@
+import { ClipboardList, CheckCircle2 } from 'lucide-react'
+
 // Placeholder — owned by Person 1 + Person 3
 // Implements: BL-SDD-02, BL-SDD-03 (UI) + BL-SDD-01, BL-SDD-03 (API)
 export type SpecData = {
@@ -18,7 +20,7 @@ export default function SpecReviewer({ spec, onApprove, onRevise }: {
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 16, padding: 32 }}>
-      <div style={{ fontSize: 28 }}>📋</div>
+      <div><ClipboardList size={32} color="#0F62FE" /></div>
       <div style={{ fontWeight: 600, fontSize: 15 }}>Specs Review & Approval Gate</div>
       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', textAlign: 'center', maxWidth: 360 }}>
         Owned by Person 1 + Person 3 — 3-part SDD reviewer with human sign-off.<br />
@@ -32,10 +34,11 @@ export default function SpecReviewer({ spec, onApprove, onRevise }: {
           Request Changes
         </button>
         <button
-          style={{ background: 'var(--green-pass)', border: 'none', color: '#fff', borderRadius: 8, padding: '8px 20px', cursor: 'pointer', fontSize: 13 }}
+          style={{ background: 'var(--green-pass)', border: 'none', color: '#fff', borderRadius: 8, padding: '8px 20px', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}
           onClick={onApprove}
         >
-          ✓ Approve & Deploy →
+          <CheckCircle2 size={15} />
+          <span>Approve &amp; Deploy →</span>
         </button>
       </div>
     </div>

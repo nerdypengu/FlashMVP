@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { History, CheckCircle2, XCircle } from 'lucide-react'
 import RunDetailInspector from './RunDetailInspector'
 
 type StepResult = { id: string; name: string; status: string; duration: string }
@@ -24,8 +25,9 @@ export default function RunHistoryTable({ runs }: { runs: Run[] }) {
 
   return (
     <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--glass-border)', fontWeight: 600 }}>
-        📋 Workflow Run History
+      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--glass-border)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <History size={16} color="#60A5FA" />
+        <span>Workflow Run History</span>
       </div>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
@@ -53,8 +55,8 @@ export default function RunHistoryTable({ runs }: { runs: Run[] }) {
               </td>
               <td style={td}><code style={{ fontSize: 12, color: 'var(--text-muted)' }}>{run.branch}</code></td>
               <td style={td}>
-                <span className={`badge badge--${run.status.toLowerCase()}`}>
-                  {run.status === 'PASSED' ? '🟢' : '🔴'} {run.status}
+                <span className={`badge badge--${run.status.toLowerCase()}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  {run.status === 'PASSED' ? <CheckCircle2 size={12} /> : <XCircle size={12} />} {run.status}
                 </span>
               </td>
               <td style={td}>{run.duration_seconds}s</td>

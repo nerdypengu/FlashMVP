@@ -7,6 +7,7 @@
  */
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { LogIn, UserPlus } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 
 type Mode = 'signin' | 'signup'
@@ -197,12 +198,19 @@ export default function LoginPage() {
               cursor: busy ? 'not-allowed' : 'pointer',
               transition: 'background 0.15s',
               letterSpacing: '0.2px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
             }}
           >
-            {busy
-              ? (mode === 'signin' ? 'Signing in…' : 'Creating account…')
-              : (mode === 'signin' ? '⚡ Sign In' : '🚀 Create Account')
-            }
+            {busy ? (
+              mode === 'signin' ? 'Signing in…' : 'Creating account…'
+            ) : mode === 'signin' ? (
+              <><LogIn size={16} /> Sign In</>
+            ) : (
+              <><UserPlus size={16} /> Create Account</>
+            )}
           </button>
         </form>
 

@@ -4,24 +4,22 @@ type ConnectorProps = {
 
 export default function QAConnector({ status }: ConnectorProps) {
   const isRunning = status === 'RUNNING'
-  const color = isRunning ? 'var(--ibm-blue)' : 'rgba(255,255,255,0.15)'
+  const isPassed  = status === 'PASSED'
+  const isFailed  = status === 'FAILED'
+
+  const strokeColor = isRunning ? '#60A5FA' : isPassed ? '#42BE65' : isFailed ? '#DA1E28' : '#FFFFFF'
 
   return (
     <div className="qa-connector">
       <svg width="48" height="24" viewBox="0 0 48 24" fill="none">
-        <defs>
-          <linearGradient id={`grad-${status}`} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor={color} />
-            <stop offset="100%" stopColor={isRunning ? 'var(--ibm-blue)' : 'rgba(255,255,255,0.1)'} />
-          </linearGradient>
-        </defs>
         <line
           x1="0" y1="12" x2="38" y2="12"
-          stroke={`url(#grad-${status})`}
-          strokeWidth="2"
-          strokeDasharray={isRunning ? '4 3' : 'none'}
+          stroke={strokeColor}
+          strokeWidth="2.5"
+          strokeDasharray={isRunning ? '5 3' : 'none'}
+          style={{ opacity: isRunning ? 1 : 0.9 }}
         />
-        <polygon points="38,7 48,12 38,17" fill={color} />
+        <polygon points="36,6 48,12 36,18" fill="#FFFFFF" />
       </svg>
     </div>
   )
