@@ -1,0 +1,24 @@
+{
+  "feature_id": "feat_demo_8f92a",
+  "status": "AWAITING_APPROVAL",
+  "requirements": "# Requirements\n\n## Overview\nBuild a full-stack e-commerce store with Stripe payment integration, product listings, a shopping cart, and order management.\n\n## Functional Requirements\n\n### FR1 — Product Catalogue\n- As a shopper, I can browse a paginated grid of products with name, price, and thumbnail.\n- As an admin, I can create, update, and delete products.\n\n### FR2 — Shopping Cart\n- As a shopper, I can add/remove items from a persistent cart (stored in localStorage and synced to the database).\n- Cart totals must recalculate in real-time when quantities change.\n\n### FR3 — Stripe Checkout\n- As a shopper, I can complete a purchase using Stripe Checkout (hosted).\n- On payment success, the order status must be set to `PAID` and stock decremented.\n- Stripe webhooks (`payment_intent.succeeded`) must confirm payment server-side.\n\n### FR4 — Order History\n- As a logged-in shopper, I can view past orders with items, totals, and status badges.\n\n## Business Rules\n- All prices stored as integers (cents) to avoid floating-point errors.\n- Stock must be validated before creating a Stripe session (prevent overselling).\n- JWT authentication required for cart sync and order endpoints.\n\n## IBM Tool Bindings\n- **IBM Cloud Code Engine** — hosts the FastAPI backend container.\n- **IBM Cloud DB (PostgreSQL)** — isolated schema `app_feat_demo_8f92a` for products, orders, users.\n- **IBM Secrets Manager** — stores `STRIPE_SECRET_KEY` and `JWT_SECRET`.\n- **IBM Watsonx QA** — ESLint + Pytest + secret scan before every deploy.",
+  "design": "# Technical Design\n\n## System Architecture\n```\nReact (Vite) ──► FastAPI (IBM Code Engine)\n                    │\n                    ├── IBM Cloud DB (PostgreSQL)\n                    │     schema: app_feat_demo_8f92a\n                    │     tables: products, cart_items, orders, order_items, users\n                    │\n                    ├── Stripe API (Checkout + Webhooks)\n                    └── IBM Secrets Manager (STRIPE_SECRET_KEY, JWT_SECRET)\n```\n\n## Database Schema\n| Table | Key Columns |\n|---|---|\n| `products` | id, name, description, price_cents, stock, image_url |\n| `users` | id, email, hashed_password, created_at |\n| `cart_items` | id, user_id, product_id, quantity |\n| `orders` | id, user_id, status (PENDING/PAID/SHIPPED), total_cents, created_at |\n| `order_items` | id, order_id, product_id, quantity, unit_price_cents |\n\n## API Endpoints\n| Method | Path | Description |\n|---|---|---|\n| GET | `/products` | Paginated product list |\n| POST | `/products` | Admin: create product |\n| POST | `/checkout/session` | Create Stripe Checkout session |\n| POST | `/webhooks/stripe` | Stripe payment_intent webhook handler |\n| GET | `/orders` | Authenticated user order history |\n\n## Frontend Components\n- `ProductGrid.tsx` — masonry grid with add-to-cart button\n- `CartDrawer.tsx` — slide-over cart panel with quantity controls\n- `CheckoutButton.tsx` — calls `/checkout/session`, redirects to Stripe\n- `OrderHistory.tsx` — table of past orders with status badges\n\n## IBM Tool Integration Points\n- DB provisioned in `<200ms` by IBM Bob Subagent Alpha at project creation.\n- `STRIPE_SECRET_KEY` injected at runtime from IBM Secrets Manager (never in `.env` file).\n- IBM Watsonx QA scans for exposed API keys before each deploy.",
+  "tasks": [
+    { "id": "task-001", "description": "Initialise FastAPI project structure with IBM Code Engine Dockerfile", "completed": false },
+    { "id": "task-002", "description": "Define PostgreSQL schema: products, users, cart_items, orders, order_items", "completed": false },
+    { "id": "task-003", "description": "Implement JWT auth endpoints: POST /auth/register, POST /auth/login", "completed": false },
+    { "id": "task-004", "description": "Implement product CRUD endpoints (GET /products, POST /products)", "completed": false },
+    { "id": "task-005", "description": "Implement cart endpoints: GET/POST/DELETE /cart", "completed": false },
+    { "id": "task-006", "description": "Integrate Stripe Checkout: POST /checkout/session with stock validation", "completed": false },
+    { "id": "task-007", "description": "Implement Stripe webhook handler: POST /webhooks/stripe", "completed": false },
+    { "id": "task-008", "description": "Build React ProductGrid component with pagination", "completed": false },
+    { "id": "task-009", "description": "Build CartDrawer component with real-time total recalculation", "completed": false },
+    { "id": "task-010", "description": "Build OrderHistory page with status badges", "completed": false }
+  ],
+  "ibm_bindings": {
+    "code_engine": true,
+    "cloud_db": true,
+    "secrets_vault": true,
+    "watsonx_qa": true
+  }
+}
