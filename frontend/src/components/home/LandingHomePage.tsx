@@ -22,6 +22,7 @@ export default function LandingHomePage() {
   const [typingComplete, setTypingComplete] = useState(false);
 
   useEffect(() => {
+    if (!typingComplete) return;
     const scrollContainer = document.querySelector(".page");
 
     const handleIntersect = (entries: IntersectionObserverEntry[]) => {
@@ -53,7 +54,7 @@ export default function LandingHomePage() {
       observer.disconnect();
       viewportObserver.disconnect();
     };
-  }, []);
+  }, [typingComplete]);
 
   const FEATURES = [
     {
@@ -268,6 +269,7 @@ export default function LandingHomePage() {
         </footer>
       </div>
 
+      {typingComplete && <div className="landing-content">
       {/* ── Feature Capabilities Grid ───────────────────────────────── */}
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
         <div className="scroll-fade" style={{ textAlign: "center" }}>
@@ -318,7 +320,7 @@ export default function LandingHomePage() {
                   flexDirection: "column",
                   gap: 12,
                   transition:
-                    "border-color 0.25s, transform 0.25s, box-shadow 0.25s",
+                    "opacity 0.65s ease-out, transform 0.65s ease-out, border-color 0.25s, box-shadow 0.25s",
                   transitionDelay: `${0.04 + idx * 0.05}s`,
                 }}
                 onMouseEnter={(e) => {
@@ -437,7 +439,7 @@ export default function LandingHomePage() {
                 flexDirection: "column",
                 gap: 8,
                 position: "relative",
-                transition: "border-color 0.2s, transform 0.2s",
+                transition: "opacity 0.65s ease-out, transform 0.65s ease-out, border-color 0.2s",
                 transitionDelay: `${0.12 + idx * 0.06}s`,
               }}
               onMouseEnter={(e) => {
@@ -577,6 +579,7 @@ export default function LandingHomePage() {
           <ArrowRight size={15} color="#000000" />
         </button>
       </div>
+      </div>}
     </div>
   );
 }

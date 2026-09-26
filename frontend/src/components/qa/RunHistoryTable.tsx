@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import { History, CheckCircle2, XCircle } from 'lucide-react'
 import RunDetailInspector from './RunDetailInspector'
 
@@ -21,6 +22,7 @@ function relativeTime(ts: string) {
 }
 
 export default function RunHistoryTable({ runs, projectName }: { runs: Run[]; projectName?: string }) {
+  const { projectId } = useParams()
   const [selected, setSelected] = useState<Run | null>(null)
 
   return (
@@ -50,9 +52,12 @@ export default function RunHistoryTable({ runs, projectName }: { runs: Run[]; pr
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
               <td style={td}>
-                <button className="qa-run-open" onClick={() => setSelected(run)} aria-label={`Open Run #${run.run_number} details`}>
+                {projectId ? <Link className="qa-run-open" to={`/project/${encodeURIComponent(projectId)}/qa?run=${run.run_number}`}
+                  onClick={event => event.stopPropagation()} aria-label={`Inspect Run #${run.run_number} in QA Canvas`}>
                   #{run.run_number}
-                </button>
+                </Link> : <button className="qa-run-open" onClick={() => setSelected(run)} aria-label={`Open Run #${run.run_number} details`}>
+                  #{run.run_number}
+                </button>}
               </td>
               <td style={td}><code style={{ fontSize: 12, color: 'var(--text-muted)' }}>{run.branch}</code></td>
               <td style={td}>
