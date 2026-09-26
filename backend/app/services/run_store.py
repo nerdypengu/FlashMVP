@@ -4,8 +4,11 @@ In-memory store for workflow run history records.
 Pre-seeded with 5 realistic mock runs for DEMO_MODE (mix of PASSED and FAILED).
 """
 import os
+import sqlite3
 import uuid
+from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 from typing import Optional
 
 from app.schemas.run import QAStepResult, RunRecord
@@ -113,26 +116,50 @@ _SEEDED_RUNS: list[RunRecord] = [
 _run_store[_DEMO_PROJECT_ID] = list(_SEEDED_RUNS)
 
 
+@contextmanager
+def _demo_db():
+    """Persist demo run snapshots between backend restarts, isolated by project."""
+    path = os.getenv("FLASHMVP_DEMO_DB", str(Path(__file__).resolve().parents[2] / "flashmvp_demo.sqlite3"))
+    conn = sqlite3.connect(path)
+    try:
+        conn.execute("CREATE TABLE IF NOT EXISTS demo_runs (project_id TEXT NOT NULL, run_id TEXT PRIMARY KEY, "
+                     "run_number INTEGER NOT NULL, triggered_at TEXT NOT NULL, payload TEXT NOT NULL, "
+                     "UNIQUE(project_id, run_number))")
+        if not conn.execute("SELECT 1 FROM demo_runs LIMIT 1").fetchone():
+            conn.executemany("INSERT INTO demo_runs VALUES (?, ?, ?, ?, ?)", [
+                (run.project_id, run.run_id, run.run_number, run.triggered_at.isoformat(), run.model_dump_json())
+                for run in _SEEDED_RUNS
+            ])
+            conn.commit()
+        yield conn
+        conn.commit()
+    finally:
+        conn.close()
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def get_runs(project_id: str) -> list[RunRecord]:
     """Return all runs for a project sorted by triggered_at descending."""
-    if DEMO_MODE and project_id not in _run_store:
-        # Any unknown project_id returns the demo seed in DEMO_MODE
-        return list(_SEEDED_RUNS)
+    if DEMO_MODE:
+        with _demo_db() as conn:
+            return [RunRecord.model_validate_json(row[0]) for row in conn.execute(
+                "SELECT payload FROM demo_runs WHERE project_id = ? ORDER BY triggered_at DESC", (project_id,)
+            )]
     runs = _run_store.get(project_id, [])
     return sorted(runs, key=lambda r: r.triggered_at, reverse=True)
 
 
 def get_run(project_id: str, run_id: str) -> Optional[RunRecord]:
     """Return a single RunRecord by run_id, or None if not found."""
+    if DEMO_MODE:
+        with _demo_db() as conn:
+            row = conn.execute("SELECT payload FROM demo_runs WHERE project_id = ? AND run_id = ?",
+                               (project_id, run_id)).fetchone()
+        return RunRecord.model_validate_json(row[0]) if row else None
     for run in _run_store.get(project_id, []):
         if run.run_id == run_id:
             return run
-    if DEMO_MODE:
-        for run in _SEEDED_RUNS:
-            if run.run_id == run_id:
-                return run
     return None
 
 
@@ -141,8 +168,24 @@ def create_run(project_id: str) -> RunRecord:
     Create a new RUNNING RunRecord at the start of a deploy.
     Returns the record so the caller can update it on completion.
     """
+    if DEMO_MODE:
+        # ponytail: global SQLite write lock; use Postgres run allocation if concurrent demo runners become frequent.
+        with _demo_db() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            next_number = conn.execute("SELECT COALESCE(MAX(run_number), 0) + 1 FROM demo_runs WHERE project_id = ?",
+                                       (project_id,)).fetchone()[0]
+            record = _new_run(project_id, next_number)
+            conn.execute("INSERT INTO demo_runs VALUES (?, ?, ?, ?, ?)",
+                         (project_id, record.run_id, next_number, record.triggered_at.isoformat(), record.model_dump_json()))
+        return record
     existing = _run_store.setdefault(project_id, [])
-    next_number = (max((r.run_number for r in existing), default=0) + 1)
+    next_number = max((r.run_number for r in existing), default=0) + 1
+    record = _new_run(project_id, next_number)
+    existing.append(record)
+    return record
+
+
+def _new_run(project_id: str, next_number: int) -> RunRecord:
     record = RunRecord(
         run_id=f"run-{uuid.uuid4().hex[:6]}",
         project_id=project_id,
@@ -153,7 +196,6 @@ def create_run(project_id: str) -> RunRecord:
         qa_steps=[],
         deployment_url=None,
     )
-    existing.append(record)
     return record
 
 
@@ -162,6 +204,15 @@ def update_run(project_id: str, run_id: str, **kwargs) -> Optional[RunRecord]:
     Patch an existing RunRecord by run_id.
     Accepted kwargs: status, duration_ms, qa_steps, deployment_url.
     """
+    if DEMO_MODE:
+        existing = get_run(project_id, run_id)
+        if existing is None:
+            return None
+        updated = existing.model_copy(update=kwargs)
+        with _demo_db() as conn:
+            conn.execute("UPDATE demo_runs SET payload = ? WHERE project_id = ? AND run_id = ?",
+                         (updated.model_dump_json(), project_id, run_id))
+        return updated
     runs = _run_store.get(project_id, [])
     for i, run in enumerate(runs):
         if run.run_id == run_id:

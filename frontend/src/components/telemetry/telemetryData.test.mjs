@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { networkRate, logLevel, telemetryWindow, telemetryTickLabel, intervalSummary, telemetryStaleAfter, telemetryPollingInterval } from './telemetryData.js'
+import { networkRate, logLevel, telemetryWindow, telemetryTickLabel, intervalSummary, telemetryStaleAfter, telemetryPollingInterval, telemetryHistory, readTelemetryHistory, saveTelemetryHistory, telemetryRange } from './telemetryData.js'
 
 const end = new Date(2026, 0, 1, 12, 37, 1).getTime()
 for (const minutes of [5, 15, 60]) {
@@ -84,7 +84,6 @@ assert.equal(logLevel('2026-01-01T00:00:00Z ERROR: connection failed'), 'ERROR')
 assert.equal(logLevel('2026-01-01T00:00:00Z {"level":"warning","message":"retry"}'), 'WARN')
 assert.equal(logLevel('GET /error-page 200'), 'UNKNOWN')
 assert.equal(logLevel('Traceback continuation'), 'UNKNOWN')
-console.log('Telemetry calculations and log classification passed.')
 
 for (const interval of [5000, 10000, 30000, 60000]) {
   assert.equal(telemetryPollingInterval(String(interval)), interval)
@@ -102,3 +101,39 @@ const failed = [...jittered, { time: 7500, cpu: null }]
 assert.ok(intervalSummary(failed, 0, 15000, 5000).some(row => row.time === 5000 && row.cpu === null))
 const unavailable = [{ time: 4900, cpu: 10, memory: 100 }, { time: 10100, cpu: null, memory: 110 }]
 assert.equal(intervalSummary(unavailable, 0, 15000, 5000).find(row => row.time === 10100).cpu, null)
+
+
+// Refresh roundtrip, retention, isolation, malformed data and unavailable storage.
+const entries = new Map()
+const storage = {
+  get length() { return entries.size },
+  key: index => [...entries.keys()][index],
+  getItem: key => entries.get(key) ?? null,
+  setItem: (key, value) => entries.set(key, value),
+  removeItem: key => entries.delete(key),
+}
+const key = 'telemetry.history.v1:demo:user:project-a:frontend'
+const otherKey = 'telemetry.history.v1:demo:user:project-b:backend'
+const cached = [{ time: end - 5000, cpu: 12, memory: null }, { time: end, cpu: 24, memory: 100 }]
+assert.equal(saveTelemetryHistory(storage, key, cached, end), true)
+assert.deepEqual(readTelemetryHistory(storage, key, end + 1000), telemetryHistory(cached, end))
+assert.deepEqual(readTelemetryHistory(storage, otherKey, end), [])
+const restored = readTelemetryHistory(storage, key, end)
+assert.deepEqual(intervalSummary(restored, end - 300000, end, 5000), intervalSummary(cached, end - 300000, end, 5000))
+storage.setItem(otherKey, JSON.stringify([{ time: end - 3600001, cpu: 5 }]))
+storage.setItem('unrelated', 'keep')
+saveTelemetryHistory(storage, key, cached, end)
+assert.equal(storage.getItem(otherKey), null)
+assert.equal(storage.getItem('unrelated'), 'keep')
+assert.deepEqual(telemetryHistory([{ time: end + 1 }, { time: end - 3600001 }, null], end), [])
+assert.equal(telemetryHistory(Array.from({ length: 1600 }, (_, i) => ({ time: end - i * 1000, cpu: i })), end).length, 1500)
+storage.setItem(otherKey, '{invalid')
+assert.deepEqual(readTelemetryHistory(storage, otherKey, end), [])
+assert.deepEqual(telemetryHistory([{ time: end, cpu: 'wrong', memory: Infinity }], end)[0], { time: end, cpu: null, memory: null, health: null, rx: null, tx: null })
+const blockedStorage = { getItem() { throw new Error('Unavailable') }, setItem() { throw new Error('Full') } }
+assert.deepEqual(readTelemetryHistory(blockedStorage, key, end), [])
+assert.equal(saveTelemetryHistory(blockedStorage, key, cached, end), false)
+
+for (const range of [5, 15, 60]) assert.equal(telemetryRange(String(range)), range)
+for (const invalid of [null, '', 'oops', '10', '-5']) assert.equal(telemetryRange(invalid), 5)
+console.log('Telemetry calculations, refresh persistence, retention and log classification passed.')

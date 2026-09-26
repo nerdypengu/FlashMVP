@@ -407,7 +407,7 @@ class TestManifestParse:
         r = await client.post("/api/v1/projects/proj_manifest04/parse-manifest")
         qa = r.json()["qa_pipeline"]
         assert len(qa) >= 1
-        assert all("id" in step and "command" in step for step in qa)
+        assert all("stage" in step and "files" in step for step in qa)
 
     async def test_parse_project_id_echoed(self, client):
         r = await client.post("/api/v1/projects/proj_manifest05/parse-manifest")
@@ -436,11 +436,11 @@ class TestRunHistory:
         timestamps = [run["triggered_at"] for run in r.json()]
         assert timestamps == sorted(timestamps, reverse=True)
 
-    async def test_list_runs_unknown_project_returns_demo_seed(self, client):
-        """DEMO_MODE: unknown project_id falls back to seeded runs."""
+    async def test_list_runs_unknown_project_is_empty(self, client):
+        """Runs from one project never appear under another project ID."""
         r = await client.get("/api/v1/projects/proj_totally_unknown/runs")
         assert r.status_code == 200
-        assert len(r.json()) > 0
+        assert r.json() == []
 
     async def test_get_single_run_ok(self, client):
         r = await client.get("/api/v1/projects/proj_8f92a/runs/run-005")

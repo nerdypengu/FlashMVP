@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Zap } from 'lucide-react'
 import QACanvas from './components/qa/QACanvas'
 import RunHistoryTable, { type Run } from './components/qa/RunHistoryTable'
 import PlaygroundWindow from './components/playground/PlaygroundWindow'
-import TelemetryCharts from './components/telemetry/TelemetryCharts'
 import TemplateSelector, { TEMPLATES, type Template } from './components/shell/TemplateSelector'
 import SpecReviewer, { type SpecData } from './components/sdd/SpecReviewer'
 import AppCatalog from './components/portal/AppCatalog'
@@ -19,7 +18,7 @@ import RequireAuth from './components/auth/RequireAuth'
 import DashboardLayout from './components/shell/DashboardLayout'
 import BinaryCanvasBackground from './components/ui/BinaryCanvasBackground'
 import { useAuth } from './context/AuthContext'
-import mockData from './mocks/qa_mock.json'
+import demoProjects from './mocks/projects_mock.json'
 import { DEMO_MODE, errorMessage, loadProjects, loadRuns, type Project } from './lib/person2Data'
 
 const DEFAULT_SPEC: SpecData = {
@@ -36,14 +35,50 @@ const DEFAULT_SPEC: SpecData = {
 
 function ProjectTelemetry({ project }: { project?: Project }) {
   const { projectId } = useParams()
-  return DEMO_MODE ? <ProjectDetailsTelemetry /> : <TelemetryCharts project={project?.project_id === projectId ? project : undefined} />
+  return <ProjectDetailsTelemetry key={projectId} project={project?.project_id === projectId || project?.id === projectId ? project : undefined} />
+}
+
+function ProjectWorkflow({ view, projects, runsByProject, setRunsByProject, loadingProjects, projectError }: {
+  view: 'qa' | 'history'; projects: Project[]; runsByProject: Record<string, Run[]>
+  setRunsByProject: Dispatch<SetStateAction<Record<string, Run[]>>>
+  loadingProjects: boolean; projectError: string
+}) {
+  const { projectId } = useParams()
+  const demoProject = DEMO_MODE ? demoProjects.find(item => item.id === projectId) : undefined
+  const liveProject = !DEMO_MODE ? projects.find(item => item.project_id === projectId || item.id === projectId) : undefined
+  const [loadingRuns, setLoadingRuns] = useState(false)
+  const [runError, setRunError] = useState('')
+
+  useEffect(() => {
+    if (!projectId || (!DEMO_MODE && !liveProject)) return
+    let active = true
+    setLoadingRuns(true); setRunError('')
+    loadRuns(DEMO_MODE ? projectId : liveProject!.id).then(rows => {
+      if (active) setRunsByProject(previous => ({ ...previous, [projectId]: rows }))
+    }).catch(error => { if (active) setRunError(errorMessage(error)) })
+      .finally(() => { if (active) setLoadingRuns(false) })
+    return () => { active = false }
+  }, [projectId, liveProject?.id, setRunsByProject])
+
+  if (!projectId || (!demoProject && !liveProject)) return <p role={loadingProjects ? 'status' : 'alert'}>
+    {loadingProjects ? 'Loading project…' : projectError || 'Project not found or access denied.'}
+  </p>
+  if (loadingRuns) return <p role="status">Loading runs…</p>
+  if (runError) return <p role="alert">{runError}</p>
+
+  const runs = runsByProject[projectId] ?? []
+  if (view === 'history') return <RunHistoryTable key={projectId} runs={runs} projectName={demoProject?.name ?? liveProject?.app_name} />
+  return <QACanvas key={projectId} projectId={projectId} runs={runs}
+    onRunComplete={run => setRunsByProject(previous => ({
+      ...previous, [projectId]: [run, ...(previous[projectId] ?? [])],
+    }))} />
 }
 
 export default function App() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user } = useAuth()
-  const [runs, setRuns] = useState<Run[]>(DEMO_MODE ? mockData.runs : [])
+  const [runsByProject, setRunsByProject] = useState<Record<string, Run[]>>({})
   const [projects, setProjects] = useState<Project[]>([])
   const [projectId, setProjectId] = useState('')
   const [dataLoading, setDataLoading] = useState(false)
@@ -51,12 +86,14 @@ export default function App() {
   const [reload, setReload] = useState(0)
   const [spec, setSpec] = useState<SpecData>(DEFAULT_SPEC)
   const project = projects.find(item => item.id === projectId)
-  const projectPage = ['/qa', '/history', '/playground', '/telemetry'].includes(location.pathname)
+  const scopedProjectId = location.pathname.startsWith('/project/') ? location.pathname.split('/')[2] : undefined
+  const scopedProject = projects.find(item => item.project_id === scopedProjectId || item.id === scopedProjectId)
+  const projectPage = ['/playground', '/telemetry'].includes(location.pathname)
 
   useEffect(() => {
     if (DEMO_MODE) return
     let active = true
-    setProjects([]); setProjectId(''); setRuns([]); setDataError('')
+    setProjects([]); setProjectId(''); setRunsByProject({}); setDataError('')
     if (!user) return
     setDataLoading(true)
     loadProjects().then(rows => {
@@ -66,17 +103,10 @@ export default function App() {
     return () => { active = false }
   }, [user?.id, reload])
 
-  useEffect(() => {
-    if (DEMO_MODE || !projectId) return
-    let active = true
-    setRuns([])
-    loadRuns(projectId).then(rows => { if (active) setRuns(rows) })
-      .catch(error => { if (active) setDataError(errorMessage(error)) })
-    return () => { active = false }
-  }, [projectId])
-
   const dashboard = (content: React.ReactNode) => <RequireAuth><DashboardLayout>
-    {!DEMO_MODE && projectPage ? <>
+    {scopedProjectId && !(DEMO_MODE ? demoProjects.some(item => item.id === scopedProjectId) : scopedProject) ?
+      <p role={dataLoading ? 'status' : 'alert'}>{dataLoading ? 'Loading project…' : dataError || 'Project not found or access denied.'}</p> :
+    !DEMO_MODE && projectPage ? <>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16 }}>
         <label htmlFor="workspace-project">Project</label>
         <select id="workspace-project" className="modal-input" value={projectId} disabled={dataLoading || !projects.length}
@@ -93,9 +123,11 @@ export default function App() {
   </DashboardLayout></RequireAuth>
 
   const card = (content: React.ReactNode) => dashboard(<div className="workspace-card glass-card page-enter">{content}</div>)
+  const workflowProps = { projects, runsByProject, setRunsByProject, loadingProjects: dataLoading, projectError: dataError }
+  const legacyProjectId = DEMO_MODE ? demoProjects[0]?.id : project?.project_id
   const generateSpec = (template: Template, prompt: string) => {
-    setSpec(previous => ({ ...previous, template, prompt, status: 'DRAFT' }))
-    navigate('/specs')
+    setSpec(previous => ({ ...previous, projectId: scopedProjectId ?? previous.projectId, template, prompt, status: 'DRAFT' }))
+    navigate(scopedProjectId ? `/project/${scopedProjectId}/specs` : '/specs')
   }
 
   return <Routes>
@@ -112,21 +144,32 @@ export default function App() {
       </div></div>} />
     <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
     <Route path="/dashboard" element={card(<ProjectsDashboard />)} />
-    <Route path="/project/:projectId/details" element={card(<ProjectDetailsPage />)} />
-    <Route path="/project/:projectId/telemetry" element={card(<ProjectTelemetry project={projects.find(item => item.project_id === location.pathname.split('/')[2])} />)} />
-    <Route path="/project/:projectId" element={card(<ProjectDetailsPage />)} />
+    <Route path="/project/:projectId/details" element={dashboard(<ProjectDetailsPage />)} />
+    <Route path="/project/:projectId/telemetry" element={card(<ProjectTelemetry project={scopedProject} />)} />
+    <Route path="/project/:projectId/qa" element={card(<ProjectWorkflow {...workflowProps} view="qa" />)} />
+    <Route path="/project/:projectId/history" element={card(<ProjectWorkflow {...workflowProps} view="history" />)} />
+    <Route path="/project/:projectId/playground" element={card(DEMO_MODE && scopedProjectId !== demoProjects[0]?.id ?
+      <p>Playground demo is not configured for this project.</p> : <PlaygroundWindow key={scopedProjectId} project={scopedProject} />)} />
+    <Route path="/project/:projectId/starter" element={card(<TemplateSelector onGenerate={generateSpec} />)} />
+    <Route path="/project/:projectId/specs" element={card(<SpecReviewer spec={{ ...spec, projectId: scopedProjectId ?? spec.projectId }}
+      onApprove={() => { setSpec(previous => ({ ...previous, status: 'APPROVED' })); navigate(`/project/${scopedProjectId}/qa`) }}
+      onRevise={feedback => setSpec(previous => ({ ...previous, status: 'CHANGES_REQUESTED', requirements: `${previous.requirements}\n\n## Revision Request\n- ${feedback}` }))} />)} />
+    <Route path="/project/:projectId/skill-pack" element={card(<SkillPackageInspector key={scopedProjectId}
+      repository={demoProjects.find(item => item.id === scopedProjectId)?.repo ?? ''} />)} />
+    <Route path="/project/:projectId/hub" element={card(<AppCatalog onOpenPlayground={() => navigate(`/project/${scopedProjectId}/playground`)} />)} />
+    <Route path="/project/:projectId/env-config" element={card(<EnvironmentConfigPage key={scopedProjectId}
+      dbSchema={scopedProject?.db_schema ?? demoProjects.find(item => item.id === scopedProjectId)?.dbSchema ?? 'Not configured'} />)} />
+    <Route path="/project/:projectId" element={dashboard(<ProjectDetailsPage />)} />
     <Route path="/env-config" element={card(<EnvironmentConfigPage />)} />
     <Route path="/skill-pack" element={card(<SkillPackageInspector />)} />
     <Route path="/starter" element={card(<TemplateSelector onGenerate={generateSpec} />)} />
     <Route path="/specs" element={card(<SpecReviewer spec={spec}
-      onApprove={() => { setSpec(previous => ({ ...previous, status: 'APPROVED' })); navigate('/qa') }}
+      onApprove={() => { setSpec(previous => ({ ...previous, status: 'APPROVED' })); navigate(`/project/${spec.projectId}/qa`) }}
       onRevise={feedback => setSpec(previous => ({ ...previous, status: 'CHANGES_REQUESTED', requirements: `${previous.requirements}\n\n## Revision Request\n- ${feedback}` }))} />)} />
-    <Route path="/qa" element={card(<QACanvas key={projectId} runs={runs}
-      nextRunNumber={Math.max(0, ...runs.map(run => run.run_number)) + 1}
-      onRunComplete={run => setRuns(previous => [run, ...previous])} />)} />
-    <Route path="/history" element={card(<RunHistoryTable runs={runs} />)} />
+    <Route path="/qa" element={dataLoading ? card(<p role="status">Loading projects…</p>) : legacyProjectId ? <RequireAuth><Navigate to={`/project/${legacyProjectId}/qa`} replace /></RequireAuth> : card(<p>No accessible projects.</p>)} />
+    <Route path="/history" element={dataLoading ? card(<p role="status">Loading projects…</p>) : legacyProjectId ? <RequireAuth><Navigate to={`/project/${legacyProjectId}/history`} replace /></RequireAuth> : card(<p>No accessible projects.</p>)} />
     <Route path="/playground" element={card(<PlaygroundWindow key={projectId} project={project} />)} />
-    <Route path="/telemetry" element={card(<div className="telemetry-layout"><TelemetryCharts key={projectId} project={project} /></div>)} />
+    <Route path="/telemetry" element={dataLoading ? card(<p role="status">Loading projects…</p>) : !DEMO_MODE && !project ? card(<p>{dataError || 'No project data is available.'}</p>) : <RequireAuth><Navigate to={`/project/${project?.project_id || 'proj_8f92a'}/telemetry`} replace /></RequireAuth>} />
     <Route path="/hub" element={card(<AppCatalog onOpenPlayground={() => navigate('/playground')} />)} />
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>

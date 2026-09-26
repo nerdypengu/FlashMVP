@@ -8,6 +8,8 @@ class QAStepResult(BaseModel):
     status: str         # "PASSED" | "FAILED" | "SKIPPED"
     duration_ms: int
     log_output: str     # Captured stdout/stderr
+    id: Optional[str] = None
+    stage: Optional[str] = None
 
 
 class RunRecord(BaseModel):

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { History, CheckCircle2, XCircle } from 'lucide-react'
 import RunDetailInspector from './RunDetailInspector'
 
-type StepResult = { id: string; name: string; status: string; duration: string; log_output?: string }
+type StepResult = { id: string; name: string; status: string; duration: string; stage?: string; log_output?: string }
 
 export type Run = {
   run_number: number
@@ -20,14 +20,14 @@ function relativeTime(ts: string) {
   return `${Math.floor(diff/3600)}h ago`
 }
 
-export default function RunHistoryTable({ runs }: { runs: Run[] }) {
+export default function RunHistoryTable({ runs, projectName }: { runs: Run[]; projectName?: string }) {
   const [selected, setSelected] = useState<Run | null>(null)
 
   return (
     <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
       <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--glass-border)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
         <History size={16} color="#60A5FA" />
-        <span>Workflow Run History</span>
+        <span>{projectName ? `${projectName} · Run History` : 'Workflow Run History'}</span>
       </div>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>

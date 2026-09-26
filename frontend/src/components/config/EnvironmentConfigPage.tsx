@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { ShieldCheck, Server, Database, Key, Check, Save, Lock, RefreshCw, Layers } from 'lucide-react'
 
-export default function EnvironmentConfigPage() {
+export default function EnvironmentConfigPage({ dbSchema: initialSchema = 'app_8f92a' }: { dbSchema?: string }) {
   const [ibmApiKey, setIbmApiKey] = useState('●●●●●●●●●●●●●●●●-w9XkQ8Z-IBMCloudKey')
   const [secretsToken, setSecretsToken] = useState('●●●●●●●●●●●●-sec_mgr_live_v2_proxy_token')
   const [region, setRegion] = useState('us-south (Dallas)')
   const [minReplicas, setMinReplicas] = useState(1)
   const [maxReplicas, setMaxReplicas] = useState(5)
-  const [dbSchema, setDbSchema] = useState('app_8f92a')
+  const [dbSchema, setDbSchema] = useState(initialSchema)
   const [saved, setSaved] = useState(false)
 
   const handleSave = (e: React.FormEvent) => {
