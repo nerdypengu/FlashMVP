@@ -45,7 +45,10 @@ export async function runDemoSteps(steps, onStatus, failStepId = null, wait = ms
     durationMs += elapsed
     const status = step.id === failStepId ? 'FAILED' : 'PASSED'
     onStatus(step.id, status, elapsed)
-    step_results.push({ id: step.id, name: step.name, status, duration: `${(elapsed / 1000).toFixed(1)}s` })
+    step_results.push({
+      id: step.id, name: step.name, status, duration: `${(elapsed / 1000).toFixed(1)}s`,
+      ...(status === 'FAILED' ? { log_output: 'This failure was triggered by the Simulate failure button; it is not an actual project test error.' } : {}),
+    })
     if (status === 'FAILED') failed = true
   }
 

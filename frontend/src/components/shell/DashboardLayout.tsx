@@ -14,14 +14,14 @@ import { useAuth } from '../../context/AuthContext'
 import BinaryCanvasBackground from '../ui/BinaryCanvasBackground'
 
 const NAV_ITEMS = [
-  { path: '/dashboard',  icon: '⚡', label: 'Overview'     },
-  { path: '/starter',    icon: '🚀', label: 'Starter'      },
-  { path: '/specs',      icon: '📋', label: 'Specs Review' },
-  { path: '/qa',         icon: '🧪', label: 'QA Canvas'    },
-  { path: '/history',    icon: '📜', label: 'Run History'  },
-  { path: '/playground', icon: '🖥️', label: 'Playground'   },
-  { path: '/telemetry',  icon: '📡', label: 'Telemetry'    },
-  { path: '/hub',        icon: '📦', label: 'xAppHub'      },
+  { path: '/dashboard',  icon: 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z', label: 'Overview' },
+  { path: '/starter',    icon: 'M14 3l7 7-10 10-7 1 1-7L15 4 M14 3l-1 6 6-1 M5 14l5 5 M3 21l2-2', label: 'Starter' },
+  { path: '/specs',      icon: 'M9 4H5v17h14V4h-4 M9 3h6v4H9z M8 12h8 M8 16h5', label: 'Specs Review' },
+  { path: '/qa',         icon: 'M3 3h6v6H3z M15 15h6v6h-6z M9 6h9v9 M6 9v9h9', label: 'QA Canvas' },
+  { path: '/history',    icon: 'M3 11a9 9 0 1 1 2 7 M3 4v7h7 M12 7v5l3 2', label: 'Run History' },
+  { path: '/playground', icon: 'M3 4h18v13H3z M8 21h8 M12 17v4 M8 8l-3 3 3 3 M16 8l3 3-3 3', label: 'Playground' },
+  { path: '/telemetry',  icon: 'M3 3v18h18 M5 13h3l3-7 4 11 3-7h3', label: 'Telemetry' },
+  { path: '/hub',        icon: 'M12 3l9 5v9l-9 5-9-5V8z M3 8l9 5 9-5 M12 13v9 M7.5 5.5l9 5', label: 'xAppHub' },
 ]
 
 interface Props {
@@ -47,7 +47,17 @@ export default function DashboardLayout({ children }: Props) {
       <BinaryCanvasBackground />
 
       {/* ── Sidebar ────────────────────────────────────────────────── */}
-      <aside style={{
+      <button type="button" className="sidebar-toggle" style={{ left: collapsed ? 64 : 220 }}
+        onClick={() => setCollapsed(v => !v)} aria-controls="dashboard-sidebar" aria-expanded={!collapsed}
+        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+          style={{ transform: collapsed ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+          <path d="m14 6-6 6 6 6" />
+        </svg>
+      </button>
+      <aside id="dashboard-sidebar" className={`dashboard-sidebar${collapsed ? ' is-collapsed' : ''}`} style={{
         position: 'relative',
         zIndex: 20,
         width: collapsed ? 64 : 220,
@@ -58,60 +68,25 @@ export default function DashboardLayout({ children }: Props) {
         borderRight: '1px solid rgba(255,255,255,0.07)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        transition: 'width 0.22s cubic-bezier(0.22,1,0.36,1), min-width 0.22s cubic-bezier(0.22,1,0.36,1)',
         overflow: 'hidden',
       }}>
 
-        {/* Logo + collapse toggle */}
+        {/* Logo */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'space-between',
-          padding: collapsed ? '18px 0' : '18px 16px',
+          padding: '18px 14px',
           borderBottom: '1px solid rgba(255,255,255,0.06)',
           flexShrink: 0,
         }}>
-          {!collapsed && (
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-              }}
-            >
-              <img src="/assets/logo.webp" alt="FlashMVP" width={32} height={32}
-                style={{ borderRadius: 8, background: '#fff', padding: 2 }} />
-              <span style={{ fontWeight: 700, fontSize: 14, color: '#fff', letterSpacing: '-0.3px' }}>
-                FlashMVP
-              </span>
-            </button>
-          )}
-          {collapsed && (
-            <img src="/assets/logo.webp" alt="FlashMVP" width={32} height={32}
-              style={{ borderRadius: 8, background: '#fff', padding: 2, cursor: 'pointer' }}
-              onClick={() => navigate('/')}
-            />
-          )}
-          <button
-            type="button"
-            onClick={() => setCollapsed(v => !v)}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 6,
-              color: 'rgba(255,255,255,0.5)',
-              width: 26, height: 26,
-              cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 11,
-              flexShrink: 0,
-              transition: 'background 0.15s',
-              marginLeft: collapsed ? 0 : 4,
-            }}
-          >
-            {collapsed ? '›' : '‹'}
+          <button type="button" className="sidebar-brand" onClick={() => navigate('/')}
+            aria-label="FlashMVP home" title={collapsed ? 'FlashMVP' : undefined}>
+            <span className="sidebar-brand-mark" aria-hidden="true">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M14 2L5 13h6l-1 9 9-12h-6l1-8Z" fill="currentColor" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+              </svg>
+            </span>
+            <span className="sidebar-brand-name sidebar-label" aria-hidden={collapsed}>Flash<span>MVP</span></span>
           </button>
         </div>
 
@@ -125,13 +100,15 @@ export default function DashboardLayout({ children }: Props) {
                 type="button"
                 onClick={() => navigate(item.path)}
                 title={collapsed ? item.label : undefined}
+                aria-label={item.label}
+                aria-current={active ? 'page' : undefined}
                 style={{
                   width: '100%',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 10,
-                  padding: collapsed ? '10px 0' : '9px 12px',
-                  justifyContent: collapsed ? 'center' : 'flex-start',
+                  padding: '9px 12px',
+                  justifyContent: 'flex-start',
                   borderRadius: 8,
                   border: 'none',
                   cursor: 'pointer',
@@ -154,8 +131,12 @@ export default function DashboardLayout({ children }: Props) {
                   if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'
                 }}
               >
-                <span style={{ fontSize: 16, lineHeight: 1, flexShrink: 0 }}>{item.icon}</span>
-                {!collapsed && <span>{item.label}</span>}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+                  style={{ flexShrink: 0, color: active ? '#78a9ff' : 'inherit' }}>
+                  <path d={item.icon} />
+                </svg>
+                <span className="sidebar-label" aria-hidden={collapsed}>{item.label}</span>
               </button>
             )
           })}

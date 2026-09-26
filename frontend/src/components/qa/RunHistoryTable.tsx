@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import RunDetailInspector from './RunDetailInspector'
 
-type StepResult = { id: string; name: string; status: string; duration: string }
+type StepResult = { id: string; name: string; status: string; duration: string; log_output?: string }
 
 export type Run = {
   run_number: number
@@ -38,6 +38,7 @@ export default function RunHistoryTable({ runs }: { runs: Run[] }) {
           </tr>
         </thead>
         <tbody>
+          {!runs.length && <tr><td colSpan={5} style={td}>No runs recorded for this project.</td></tr>}
           {runs.map(run => (
             <tr
               key={run.run_number}

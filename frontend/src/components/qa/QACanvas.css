@@ -1,16 +1,10 @@
-.workspace-card.qa-workspace {
-  max-width: 1100px;
-  padding: 0 16px 64px;
-  margin: auto;
-}
-
 .qa-canvas-wrapper {
   --text-muted: #92918f;
   --text-primary: #f5f3f0;
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 20px;
   color: #f5f3f0;
 }
 .qa-canvas-header {
@@ -18,7 +12,7 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 18px 0 0;
+  padding: 0;
 }
 .qa-eyebrow {
   font: 11px ui-monospace, monospace;
@@ -27,16 +21,16 @@
   border: 1px solid #393939;
   border-radius: 5px;
   padding: 5px 8px;
-  margin-bottom: 22px;
+  margin-bottom: 10px;
 }
 .qa-canvas-title {
-  font: normal clamp(36px, 5vw, 54px)/1.05 Georgia, 'Times New Roman', serif;
+  font: normal 28px/1.15 Georgia, 'Times New Roman', serif;
   letter-spacing: -0.045em;
 }
 .qa-canvas-subtitle {
-  font-size: 15px;
+  font-size: 13px;
   color: #b7b5b2;
-  margin-top: 16px;
+  margin-top: 6px;
   line-height: 1.5;
 }
 .qa-canvas-body { width: 100%; }
@@ -45,14 +39,14 @@
   align-items: end;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 .qa-section-heading h2 {
-  font: normal 29px/1.15 Georgia, 'Times New Roman', serif;
+  font: normal 20px/1.2 Georgia, 'Times New Roman', serif;
   letter-spacing: -0.035em;
 }
 .qa-section-heading p { font-size: 13px; color: #aaa8a5; margin-top: 6px; }
-.qa-section-controls { display: flex; align-items: center; gap: 16px; }
+.qa-section-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .qa-section-controls > span { font: 11px ui-monospace, monospace; color: #92918f; white-space: nowrap; }
 .qa-add-stage-form { display: flex; gap: 6px; }
 .qa-add-stage-form input {
@@ -69,20 +63,21 @@
 
 .qa-canvas-track {
   display: grid;
+  justify-content: safe center;
   align-items: start;
-  gap: 32px;
+  gap: 12px;
   overflow-x: auto;
   padding-bottom: 12px;
   scrollbar-color: #555 #161616;
 }
 .qa-canvas-track:focus-visible { outline: 2px solid #d4d1cd; outline-offset: 3px; }
-.qa-stage-column { position: relative; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
+.qa-stage-column { position: relative; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 .qa-stage-column:not(:last-child)::after {
   content: '';
   position: absolute;
-  top: 18px;
-  left: calc(50% + 23px);
-  width: calc(100% + 32px - 46px);
+  top: 14px;
+  left: calc(50% + 18px);
+  width: calc(100% + 12px - 36px);
   height: 2px;
   background: #414141;
 }
@@ -92,13 +87,13 @@
   display: grid;
   place-items: center;
   align-self: center;
-  width: 38px;
-  height: 38px;
+  width: 30px;
+  height: 30px;
   border: 2px solid #535353;
   border-radius: 50%;
   background: #303030;
   color: #b8b8b8;
-  font: 700 21px/1 var(--font-sans);
+  font: 700 16px/1 var(--font-sans);
 }
 .qa-stage-progress--passed { background: #237a50; border-color: #70bd8a; color: #fff; box-shadow: 0 0 0 4px rgba(58, 172, 107, 0.18); }
 .qa-stage-progress--failed { background: #a96b20; border-color: #e6ad5a; color: #fff; box-shadow: 0 0 0 4px rgba(230, 173, 90, 0.15); }
@@ -109,18 +104,18 @@
   background: #121212;
   border: 1px solid #303030;
   border-radius: 9px;
-  padding: 12px;
+  padding: 8px;
 }
 .qa-stage-heading, .qa-stage-heading > div { display: flex; align-items: center; gap: 10px; }
-.qa-stage-heading { justify-content: space-between; padding: 4px 4px 12px; }
-.qa-stage-heading h3 { font-size: 15px; font-weight: 600; }
+.qa-stage-heading { justify-content: space-between; padding: 2px 2px 8px; }
+.qa-stage-heading h3 { font-size: 13px; font-weight: 600; }
 .qa-stage-heading h3 { overflow-wrap: anywhere; }
 .qa-stage-heading span { font: 12px ui-monospace, monospace; color: #aaa8a5; }
 .qa-remove-stage { background: transparent; border: none; color: #aaa8a5; font-size: 19px; line-height: 1; cursor: pointer; }
 .qa-remove-stage:hover { color: #f5f3f0; }
 .qa-remove-stage:disabled { opacity: 0.4; cursor: not-allowed; }
-.qa-stage-jobs { display: grid; gap: 10px; }
-.qa-stage-jobs:empty::after { content: 'Drop jobs here'; padding: 36px 10px; border: 1px dashed #444; border-radius: 8px; color: #92918f; font-size: 13px; text-align: center; }
+.qa-stage-jobs { display: grid; gap: 6px; }
+.qa-stage-jobs:empty::after { content: 'Drop jobs here'; padding: 16px 8px; border: 1px dashed #444; border-radius: 8px; color: #92918f; font-size: 12px; text-align: center; }
 .qa-node-card {
   position: relative;
   min-width: 0;
@@ -129,9 +124,8 @@
   border-radius: 9px;
   overflow: hidden;
   transition: border-color 0.2s;
-  cursor: grab;
+  cursor: default;
 }
-.qa-node-card:active { cursor: grabbing; }
 .qa-node-card:hover, .qa-node-card:focus-visible { border-color: #888; }
 .qa-node-card:focus-visible { outline: 2px solid #d4d1cd; outline-offset: 2px; }
 .qa-node-card--drop-before::before, .qa-node-card--drop-after::after {
@@ -150,35 +144,40 @@
 .qa-node-card--disabled { opacity: 0.55; }
 .qa-node-heading {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  padding: 14px 16px 12px;
+  gap: 8px;
+  padding: 9px 10px;
   border-bottom: 1px solid #2c2c2c;
 }
-.qa-node-number { font: 17px ui-monospace, monospace; color: #aaa7a2; }
-.qa-node-name { grid-column: 1 / -1; grid-row: 2; font-size: 16px; font-weight: 500; letter-spacing: -0.02em; }
+.qa-node-number { font: 11px ui-monospace, monospace; color: #aaa7a2; }
+.qa-node-heading-actions { display: flex; align-items: center; gap: 6px; }
+.qa-node-edit { display: inline-flex; align-items: center; justify-content: center; padding: 2px; }
+.qa-node-name { font-size: 13px; line-height: 1.4; font-weight: 500; letter-spacing: -0.02em; overflow-wrap: anywhere; }
 .qa-node-status {
-  grid-column: 2;
-  grid-row: 1;
-  width: 24px;
-  height: 24px;
-  font-size: 14px;
+  width: 20px;
+  height: 20px;
+  font-size: 12px;
 }
 .qa-node-details {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 10px;
-  padding: 12px 16px 14px;
+  gap: 6px;
+  padding: 8px 10px;
 }
-.qa-node-duration { font-size: 13px; color: #aaa8a5; }
+.qa-node-duration { font-size: 12px; color: #aaa8a5; }
+.qa-node-error { width: 100%; color: #ffaaa3; font-size: 12px; }
+.qa-node-error pre { max-height: 160px; overflow: auto; margin: 6px 0 0; padding: 8px; border-radius: 6px; background: #241515; color: #f0c2bd; font: 11px/1.5 ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .qa-node-duration strong { color: #f5f3f0; font-weight: 500; margin-left: 8px; }
-.qa-node-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.qa-node-toggle { display: flex; align-items: center; gap: 6px; min-height: 24px; font-size: 12px; cursor: pointer; white-space: nowrap; }
 .qa-node-toggle input { width: 16px; height: 16px; cursor: pointer; accent-color: #eeeae5; }
 .qa-node-toggle input:disabled { cursor: not-allowed; }
 .qa-node-controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
 .qa-node-drag-hint { color: #aaa8a5; font-size: 11px; white-space: nowrap; }
+.qa-stage-empty, .qa-runner-note { color: #92918f; font-size: 12px; line-height: 1.5; }
+.qa-stage-empty { padding: 12px 4px; text-align: center; }
+.qa-runner-note { margin-top: 8px; text-align: center; }
 
 /* Summary Bar */
 .qa-summary-bar {
@@ -193,7 +192,7 @@
 }
 .qa-summary-result { font-weight: 600; }
 
-.qa-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.qa-actions { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .qa-run-open { background: none; border: 0; color: var(--text-primary); font: inherit; font-weight: 600; cursor: pointer; }
 .qa-run-open:hover { color: var(--ibm-blue); }
 .qa-run-open:focus-visible { outline: 2px solid var(--ibm-blue); outline-offset: 3px; }
@@ -224,9 +223,8 @@
 .qa-add-step-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 @media (max-width: 600px) {
-  .workspace-card.qa-workspace { padding: 12px 0 48px; }
-  .qa-canvas-wrapper { gap: 28px; }
-  .qa-canvas-header { padding-top: 10px; }
+  .qa-canvas-wrapper { gap: 16px; }
+  .qa-canvas-header { padding-top: 0; }
   .qa-section-heading, .qa-section-controls { flex-wrap: wrap; }
 }
 

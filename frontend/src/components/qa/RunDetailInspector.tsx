@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
+import { DEMO_MODE } from '../../lib/person2Data'
 
-type StepResult = { id: string; name: string; status: string; duration: string }
+type StepResult = { id: string; name: string; status: string; duration: string; log_output?: string }
 
 type Run = {
   run_number: number
@@ -71,7 +72,7 @@ export default function RunDetailInspector({ run, onClose }: Props) {
                 </div>
               </div>
               <pre style={{ fontSize: 11, color: '#a8b1c0', background: '#0a0a0f', borderRadius: 6, padding: '10px 12px', margin: 0, overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-                {MOCK_LOGS[step.status] ?? '(no logs)'}
+                {step.log_output || (DEMO_MODE ? MOCK_LOGS[step.status] : null) || '(no logs recorded)'}
               </pre>
             </div>
           ))}
