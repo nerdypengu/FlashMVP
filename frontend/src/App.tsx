@@ -2,6 +2,8 @@ import { useState } from 'react'
 import QACanvas from './components/qa/QACanvas'
 import RunHistoryTable, { type Run } from './components/qa/RunHistoryTable'
 import PlaygroundWindow from './components/playground/PlaygroundWindow'
+import TelemetryCharts from './components/telemetry/TelemetryCharts'
+import LogViewer from './components/playground/LogViewer'
 import mockData from './mocks/qa_mock.json'
 
 type Tab = 'qa' | 'history' | 'playground' | 'telemetry'
@@ -45,7 +47,12 @@ export default function App() {
         </div>
         {activeTab === 'history' && <RunHistoryTable runs={runs} />}
         {activeTab === 'playground' && <PlaygroundWindow />}
-        {activeTab === 'telemetry' && <h1>{TABS.find(tab => tab.id === activeTab)?.label}</h1>}
+        {activeTab === 'telemetry' && (
+          <div className="telemetry-layout">
+            <TelemetryCharts />
+            <LogViewer />
+          </div>
+        )}
       </main>
     </div>
   )
