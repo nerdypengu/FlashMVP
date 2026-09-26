@@ -2,6 +2,8 @@ import { useState } from 'react'
 import mockData from '../../mocks/qa_mock.json'
 import QANodeCard from './QANodeCard'
 import QAConnector from './QAConnector'
+import ContextMenu from './ContextMenu'
+import AddStepModal from './AddStepModal'
 import { runDemoSteps } from './runDemoSteps.js'
 import './QACanvas.css'
 
@@ -15,6 +17,7 @@ type Step = {
   enabled: boolean
   status: NodeStatus
   elapsed?: number
+  timeoutSeconds?: number
 }
 
 export default function QACanvas() {
@@ -22,6 +25,8 @@ export default function QACanvas() {
   const [running, setRunning] = useState(false)
   const [summary, setSummary] = useState<string | null>(null)
   const [runNumber, setRunNumber] = useState(13)
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
+  const [showModal, setShowModal] = useState(false)
 
   const updateStep = (id: string, patch: Partial<Step>) =>
     setSteps(previous => previous.map(step => step.id === id ? { ...step, ...patch } : step))
@@ -33,6 +38,7 @@ export default function QACanvas() {
 
   const runDemoQA = async (simulateFailure = false) => {
     if (running || !steps.some(step => step.enabled)) return
+    setMenu(null)
     setRunning(true)
     resetSteps()
     try {
@@ -53,8 +59,16 @@ export default function QACanvas() {
     setSummary(null)
   }
 
+  const handleContextMenu = (event: React.MouseEvent) => {
+    event.preventDefault()
+    if (!running) setMenu({ x: event.clientX, y: event.clientY })
+  }
+
+  const addStep = (step: Omit<Step, 'status'> & { status: NodeStatus }) =>
+    setSteps(previous => [...previous, step])
+
   return (
-    <div className="qa-canvas-wrapper">
+    <div className="qa-canvas-wrapper" onContextMenu={handleContextMenu}>
       <div className="qa-canvas-header">
         <div>
           <div className="qa-canvas-title">🤖 IBM Bob Subagent Beta — QA Pipeline</div>
@@ -87,10 +101,27 @@ export default function QACanvas() {
             {index < steps.length - 1 && <QAConnector status={step.status} />}
           </div>
         ))}
-        <button className="qa-add-step-btn" disabled>+ Add Custom Step</button>
+        <button className="qa-add-step-btn" onClick={() => setShowModal(true)} disabled={running}>+ Add Custom Step</button>
       </div>
 
-      {summary && <div className="qa-summary-bar"><span className="qa-summary-result">{summary}</span></div>}
+      {summary && (
+        <div className="qa-summary-bar">
+          <span className="qa-summary-result">{summary}</span>
+          <button className="btn btn--ghost" onClick={() => runDemoQA()}>Run Again</button>
+        </div>
+      )}
+
+      {menu && (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          onAddStep={() => setShowModal(true)}
+          onRunAll={() => runDemoQA()}
+          onReset={resetSteps}
+          onClose={() => setMenu(null)}
+        />
+      )}
+      {showModal && <AddStepModal onAdd={step => addStep({ ...step, status: step.status as NodeStatus })} onClose={() => setShowModal(false)} />}
     </div>
   )
 }
