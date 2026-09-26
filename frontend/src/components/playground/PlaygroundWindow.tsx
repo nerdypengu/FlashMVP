@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import ServiceSwitcher from './ServiceSwitcher'
+import DatabaseSchema from './DatabaseSchema'
 
 type Viewport = 'desktop' | 'tablet' | 'mobile'
 
@@ -204,33 +205,7 @@ export default function PlaygroundWindow() {
                     <span className="badge badge--passed">PostgreSQL 16.2</span>
                   </div>
 
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                      <thead>
-                        <tr style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', textAlign: 'left' }}>
-                          <th style={{ padding: '8px 12px' }}>Column</th>
-                          <th style={{ padding: '8px 12px' }}>Type</th>
-                          <th style={{ padding: '8px 12px' }}>Constraints</th>
-                          <th style={{ padding: '8px 12px' }}>Sample Value</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {[
-                          { col: 'id', type: 'UUID', con: 'PRIMARY KEY DEFAULT gen_random_uuid()', sample: 'c56a4180-65aa-42ec-a945-5fd21dec0538' },
-                          { col: 'name', type: 'VARCHAR(255)', con: 'NOT NULL', sample: 'Quantum Mechanical Keyboard' },
-                          { col: 'price_cents', type: 'INTEGER', con: 'NOT NULL CHECK (price_cents >= 0)', sample: '18900' },
-                          { col: 'created_at', type: 'TIMESTAMPTZ', con: 'DEFAULT NOW()', sample: '2026-09-26T00:15:00Z' },
-                        ].map((row, idx) => (
-                          <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                            <td style={{ padding: '10px 12px', fontWeight: 600 }}><code>{row.col}</code></td>
-                            <td style={{ padding: '10px 12px', color: 'var(--ibm-blue)' }}>{row.type}</td>
-                            <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{row.con}</td>
-                            <td style={{ padding: '10px 12px', color: '#a8e6a3' }}><code>{row.sample}</code></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <DatabaseSchema />
                 </div>
               )}
             </div>
