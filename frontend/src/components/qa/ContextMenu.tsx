@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { Plus, Play, RotateCcw } from 'lucide-react'
 
 type ContextMenuProps = {
   x: number
@@ -24,15 +25,15 @@ export default function ContextMenu({ x, y, onAddStep, onRunAll, onReset, onClos
         onMouseDown={onClose}
       />
       <div className="context-menu" style={{ top: y, left: x }}>
-        <button className="context-menu-item" onClick={() => { onAddStep(); onClose() }}>
-          ➕ Add Custom QA Step
+        <button className="context-menu-item" onClick={() => { onAddStep(); onClose() }} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Plus size={14} /> <span>Add Custom QA Step</span>
         </button>
-        <button className="context-menu-item" onClick={() => { onRunAll(); onClose() }}>
-          ▶️ Run All Steps Now
+        <button className="context-menu-item" onClick={() => { onRunAll(); onClose() }} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Play size={14} /> <span>Run All Steps Now</span>
         </button>
         <hr className="context-menu-divider" />
-        <button className="context-menu-item" onClick={() => { onReset(); onClose() }}>
-          🔄 Reset Pipeline
+        <button className="context-menu-item" onClick={() => { onReset(); onClose() }} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <RotateCcw size={14} /> <span>Reset Pipeline</span>
         </button>
       </div>
     </>

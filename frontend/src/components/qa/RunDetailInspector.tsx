@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { CheckCircle2, XCircle, MinusCircle, X } from 'lucide-react'
 
 type StepResult = { id: string; name: string; status: string; duration: string }
 
@@ -14,9 +15,9 @@ type Run = {
 type Props = { run: Run; onClose: () => void }
 
 const MOCK_LOGS: Record<string, string> = {
-  PASSED: '✓ Step completed successfully\n[00:00] Starting step...\n[00:01] Executing checks...\n[00:02] All assertions passed.\n✓ Done',
-  FAILED: '✗ Step failed\n[00:00] Starting step...\n[00:01] Running checks...\n[00:02] AssertionError: expected 0 errors, got 3\n✗ Pipeline halted',
-  SKIPPED: '⚪ Step was skipped (previous step failed)',
+  PASSED: '✔ Step completed successfully\n[00:00] Starting step...\n[00:01] Executing checks...\n[00:02] All assertions passed.\n✔ Done',
+  FAILED: '✖ Step failed\n[00:00] Starting step...\n[00:01] Running checks...\n[00:02] AssertionError: expected 0 errors, got 3\n✖ Pipeline halted',
+  SKIPPED: 'Step was skipped (previous step failed)',
 }
 
 export default function RunDetailInspector({ run, onClose }: Props) {
@@ -48,12 +49,14 @@ export default function RunDetailInspector({ run, onClose }: Props) {
               Branch: <code>{run.branch}</code> · {run.duration_seconds}s total
             </div>
             <div style={{ marginTop: 8 }}>
-              <span className={`badge badge--${run.status.toLowerCase()}`}>
-                {run.status === 'PASSED' ? '🟢' : '🔴'} {run.status}
+              <span className={`badge badge--${run.status.toLowerCase()}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                {run.status === 'PASSED' ? <CheckCircle2 size={12} /> : <XCircle size={12} />} {run.status}
               </span>
             </div>
           </div>
-          <button onClick={onClose} aria-label="Close run details" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 18 }}>✕</button>
+          <button onClick={onClose} aria-label="Close run details" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}>
+            <X size={18} />
+          </button>
         </div>
 
         {/* step results */}
@@ -65,8 +68,8 @@ export default function RunDetailInspector({ run, onClose }: Props) {
                 <span style={{ fontWeight: 600, fontSize: 13 }}>{step.name}</span>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{step.duration}</span>
-                  <span className={`badge badge--${step.status.toLowerCase()}`}>
-                    {step.status === 'PASSED' ? '🟢' : step.status === 'FAILED' ? '🔴' : '⚪'} {step.status}
+                  <span className={`badge badge--${step.status.toLowerCase()}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    {step.status === 'PASSED' ? <CheckCircle2 size={12} /> : step.status === 'FAILED' ? <XCircle size={12} /> : <MinusCircle size={12} />} {step.status}
                   </span>
                 </div>
               </div>

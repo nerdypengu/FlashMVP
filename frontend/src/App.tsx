@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom'
+import { Zap } from 'lucide-react'
 
 // ── Tool components ──────────────────────────────────────────────────────────
 import QACanvas from './components/qa/QACanvas'
@@ -10,6 +11,12 @@ import LogViewer from './components/playground/LogViewer'
 import TemplateSelector, { TEMPLATES, type Template } from './components/shell/TemplateSelector'
 import SpecReviewer, { type SpecData } from './components/sdd/SpecReviewer'
 import AppCatalog from './components/portal/AppCatalog'
+import ProjectsDashboard from './components/dashboard/ProjectsDashboard'
+import SkillPackageInspector from './components/sdd/SkillPackageInspector'
+import ProjectDetailsTelemetry from './components/dashboard/ProjectDetailsTelemetry'
+import ProjectDetailsPage from './components/dashboard/ProjectDetailsPage'
+import EnvironmentConfigPage from './components/config/EnvironmentConfigPage'
+import LandingHomePage from './components/home/LandingHomePage'
 
 // ── Layout / auth ────────────────────────────────────────────────────────────
 import BinaryCanvasBackground from './components/ui/BinaryCanvasBackground'
@@ -139,7 +146,7 @@ export default function App() {
               {user ? (
                 <button type="button" className="sign-in-btn"
                   onClick={() => navigate('/dashboard')}>
-                  ⚡ Dashboard
+                  <Zap size={14} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 4 }} /> Dashboard
                 </button>
               ) : (
                 <button type="button" className="sign-in-btn"
@@ -165,91 +172,9 @@ export default function App() {
             <main className="hero-workspace">
               <Routes>
 
-                {/* Home — fully public */}
+                {/* Home — redirects to /dashboard if logged in, else renders LandingHomePage */}
                 <Route path="/" element={
-                  <div className="hero-overview">
-                    <div className="trust-row anim" style={{ '--d': '0.05s' } as React.CSSProperties}>
-                      <div className="avatar-ring avatar-ring-1" title="IBM Cloud & Bob 2.0">
-                        <div className="avatar-inner">
-                          <i className="fa-brands fa-ibm" style={{ fontSize: '16px' }} />
-                        </div>
-                      </div>
-                      <div className="avatar-ring avatar-ring-2" title="Docker Container Fleet">
-                        <div className="avatar-inner">
-                          <i className="fa-brands fa-docker" style={{ fontSize: '15px' }} />
-                        </div>
-                      </div>
-                      <div className="avatar-ring avatar-ring-3" title="Cloudflare Quick Tunnel">
-                        <div className="avatar-inner">
-                          <i className="fa-brands fa-cloudflare" style={{ fontSize: '15px' }} />
-                        </div>
-                      </div>
-                      <div className="trust-pill">
-                        <span className="trust-text">Powered by IBM Bob 2.0 &amp; Cloud Fleet</span>
-                      </div>
-                    </div>
-
-                    <TypewriterHero
-                      line1Text="FLASHMVP"
-                      line2Text="SPEC TO CONTAINER"
-                      onComplete={() => setTypingComplete(true)}
-                    />
-
-                    <p className={`subhead sequential-reveal ${typingComplete ? 'sequential-reveal--visible' : ''}`}
-                      style={{ transitionDelay: '0.05s' }}>
-                      Autonomous agentic middleware proxy. Transform natural prompts into production-grade
-                      container fleets with automated 3-part SDD specs, instant IBM Cloud DB provisioning,
-                      and watsonx QA observability.
-                    </p>
-
-                    <div
-                      className={`sequential-reveal ${typingComplete ? 'sequential-reveal--visible' : ''}`}
-                      style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center', transitionDelay: '0.18s' }}
-                    >
-                      {user ? (
-                        <button type="button" className="cta-btn" onClick={() => navigate('/dashboard')}>
-                          ⚡ Go to Dashboard
-                        </button>
-                      ) : (
-                        <>
-                          <button type="button" className="cta-btn" onClick={() => navigate('/login')}>
-                            ⚡ Get Started
-                          </button>
-                          <button
-                            type="button" className="cta-btn"
-                            style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}
-                            onClick={() => navigate('/login')}
-                          >
-                            Sign In →
-                          </button>
-                        </>
-                      )}
-                    </div>
-
-                    <footer
-                      className={`stats sequential-reveal ${typingComplete ? 'sequential-reveal--visible' : ''}`}
-                      aria-label="Platform Statistics"
-                      style={{ marginTop: 'clamp(24px, 4vh, 48px)', transitionDelay: '0.32s' }}
-                    >
-                      {[
-                        { icon: '<', value: '200', suffix: 'ms',     label: 'DB Provisioning'            },
-                        { icon: '%', value: '99.9', suffix: '%',     label: 'watsonx QA Reliability'     },
-                        { icon: '*', value: '24',   suffix: '/7',    label: 'Autonomous Container Fleet' },
-                        { icon: '#', value: '1',    suffix: '-Click', label: 'Spec-to-Deploy Cycle'      },
-                      ].map(s => (
-                        <div key={s.label} className="stat-item">
-                          <div className="stat-top">
-                            <span className="stat-icon">{s.icon}</span>
-                            <div className="stat-value-group">
-                              <span className="stat-value">{s.value}</span>
-                              <span className="stat-suffix">{s.suffix}</span>
-                            </div>
-                          </div>
-                          <span className="stat-label">{s.label}</span>
-                        </div>
-                      ))}
-                    </footer>
-                  </div>
+                  user ? <Navigate to="/dashboard" replace /> : <LandingHomePage />
                 } />
 
                 {/* Login — redirects to /dashboard if already signed in */}
@@ -276,12 +201,12 @@ export default function App() {
                 {user ? (
                   <button type="button" className="mobile-sign-in"
                     onClick={() => { navigate('/dashboard'); setMobileMenuOpen(false) }}>
-                    ⚡ Dashboard
+                    <Zap size={14} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 4 }} /> Dashboard
                   </button>
                 ) : (
                   <button type="button" className="mobile-sign-in"
                     onClick={() => { navigate('/login'); setMobileMenuOpen(false) }}>
-                    ⚡ Get Started
+                    <Zap size={14} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 4 }} /> Get Started
                   </button>
                 )}
               </nav>
@@ -296,38 +221,31 @@ export default function App() {
 
       <Route path="/dashboard" element={dashboardElement(
         <div className="workspace-card glass-card page-enter">
-          <TemplateSelector onGenerate={handleGenerateSpec} />
+          <ProjectsDashboard />
         </div>
       )} />
 
-      <Route path="/starter" element={dashboardElement(
+      <Route path="/project/:projectId/details" element={dashboardElement(
         <div className="workspace-card glass-card page-enter">
-          <TemplateSelector onGenerate={handleGenerateSpec} />
+          <ProjectDetailsPage />
         </div>
       )} />
 
-      <Route path="/specs" element={dashboardElement(
+      <Route path="/project/:projectId/telemetry" element={dashboardElement(
         <div className="workspace-card glass-card page-enter">
-          <SpecReviewer
-            spec={spec}
-            onApprove={handleApproveSpec}
-            onRevise={handleReviseSpec}
-          />
+          <ProjectDetailsTelemetry />
         </div>
       )} />
 
-      <Route path="/qa" element={dashboardElement(
+      <Route path="/project/:projectId" element={dashboardElement(
         <div className="workspace-card glass-card page-enter">
-          <QACanvas
-            nextRunNumber={Math.max(0, ...runs.map(r => r.run_number)) + 1}
-            onRunComplete={run => setRuns(prev => [run, ...prev])}
-          />
+          <ProjectDetailsPage />
         </div>
       )} />
 
-      <Route path="/history" element={dashboardElement(
+      <Route path="/env-config" element={dashboardElement(
         <div className="workspace-card glass-card page-enter">
-          <RunHistoryTable runs={runs} />
+          <EnvironmentConfigPage />
         </div>
       )} />
 
@@ -337,18 +255,24 @@ export default function App() {
         </div>
       )} />
 
-      <Route path="/telemetry" element={dashboardElement(
-        <div className="workspace-card glass-card page-enter telemetry-viewport">
-          <div className="telemetry-layout">
-            <TelemetryCharts />
-            <LogViewer />
-          </div>
+      <Route path="/skill-pack" element={dashboardElement(
+        <div className="workspace-card glass-card page-enter">
+          <SkillPackageInspector />
         </div>
       )} />
 
-      <Route path="/hub" element={dashboardElement(
+      <Route path="/specs" element={dashboardElement(
         <div className="workspace-card glass-card page-enter">
-          <AppCatalog onOpenPlayground={() => navigate('/playground')} />
+          <SkillPackageInspector />
+        </div>
+      )} />
+
+      <Route path="/qa" element={dashboardElement(
+        <div className="workspace-card glass-card page-enter">
+          <QACanvas
+            nextRunNumber={Math.max(0, ...runs.map(r => r.run_number)) + 1}
+            onRunComplete={run => setRuns(prev => [run, ...prev])}
+          />
         </div>
       )} />
 
