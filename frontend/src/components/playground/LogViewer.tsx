@@ -34,7 +34,7 @@ const LIVE_LINES: Record<string, string[]> = {
     'INFO:     GET /api/v1/projects/proj_8f92a/runs 200',
     'INFO:     POST /api/v1/specs/approve 200',
     'INFO:     GET /api/v1/projects/proj_8f92a/containers/frontend/stats 200',
-    '🔵 Polling container stats (cpu: 18%, ram: 210MB)',
+    'Polling container stats (cpu: 18%, ram: 210MB)',
   ],
 }
 

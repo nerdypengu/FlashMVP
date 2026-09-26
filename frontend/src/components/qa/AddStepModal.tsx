@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Plus } from 'lucide-react'
 
 type AddStepModalProps = {
   stages: readonly string[]
@@ -42,7 +43,10 @@ export default function AddStepModal({ stages, initialStep, onAdd, onClose }: Ad
   return (
     <div className="modal-overlay" onMouseDown={() => { if (!saving) onClose() }}>
       <div className="modal-box" role="dialog" aria-modal="true" aria-labelledby="add-step-title" onMouseDown={e => e.stopPropagation()}>
-        <div className="modal-title" id="add-step-title">{initialStep ? 'Edit QA Step' : 'Add Custom QA Step'}</div>
+        <div className="modal-title" id="add-step-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Plus size={16} color="#0F62FE" />
+          <span>{initialStep ? 'Edit QA Step' : 'Add Custom QA Step'}</span>
+        </div>
 
         <div className="modal-field">
           <label htmlFor="qa-step-name">Step Name</label>

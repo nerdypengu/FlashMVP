@@ -1,603 +1,133 @@
-import { useEffect, useState, useRef } from "react";
-import {
-  useNavigate,
-  useLocation,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
+import { useEffect, useState } from 'react'
+import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Zap } from 'lucide-react'
+import QACanvas from './components/qa/QACanvas'
+import RunHistoryTable, { type Run } from './components/qa/RunHistoryTable'
+import PlaygroundWindow from './components/playground/PlaygroundWindow'
+import TelemetryCharts from './components/telemetry/TelemetryCharts'
+import TemplateSelector, { TEMPLATES, type Template } from './components/shell/TemplateSelector'
+import SpecReviewer, { type SpecData } from './components/sdd/SpecReviewer'
+import AppCatalog from './components/portal/AppCatalog'
+import ProjectsDashboard from './components/dashboard/ProjectsDashboard'
+import ProjectDetailsPage from './components/dashboard/ProjectDetailsPage'
+import ProjectDetailsTelemetry from './components/dashboard/ProjectDetailsTelemetry'
+import EnvironmentConfigPage from './components/config/EnvironmentConfigPage'
+import SkillPackageInspector from './components/sdd/SkillPackageInspector'
+import LandingHomePage from './components/home/LandingHomePage'
+import LoginPage from './components/auth/LoginPage'
+import RequireAuth from './components/auth/RequireAuth'
+import DashboardLayout from './components/shell/DashboardLayout'
+import BinaryCanvasBackground from './components/ui/BinaryCanvasBackground'
+import { useAuth } from './context/AuthContext'
+import mockData from './mocks/qa_mock.json'
+import { DEMO_MODE, errorMessage, loadProjects, loadRuns, type Project } from './lib/person2Data'
 
-// ── Tool components ──────────────────────────────────────────────────────────
-import QACanvas from "./components/qa/QACanvas";
-import RunHistoryTable, { type Run } from "./components/qa/RunHistoryTable";
-import PlaygroundWindow from "./components/playground/PlaygroundWindow";
-import TelemetryCharts from "./components/telemetry/TelemetryCharts";
-import TemplateSelector, {
-  TEMPLATES,
-  type Template,
-} from "./components/shell/TemplateSelector";
-import SpecReviewer, { type SpecData } from "./components/sdd/SpecReviewer";
-import AppCatalog from "./components/portal/AppCatalog";
-
-// ── Layout / auth ────────────────────────────────────────────────────────────
-import BinaryCanvasBackground from "./components/ui/BinaryCanvasBackground";
-import TypewriterHero from "./components/ui/TypewriterHero";
-import LoginPage from "./components/auth/LoginPage";
-import RequireAuth from "./components/auth/RequireAuth";
-import DashboardLayout from "./components/shell/DashboardLayout";
-import { useAuth } from "./context/AuthContext";
-import mockData from "./mocks/qa_mock.json";
-import { DEMO_MODE, errorMessage, loadProjects, loadRuns, type Project } from "./lib/person2Data";
-
-const DASHBOARD_ICON = (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-    strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
-    style={{ marginRight: 8, verticalAlign: "middle", flexShrink: 0 }}>
-    <path d="M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z" />
-  </svg>
-);
-
-// ── Default spec stub ────────────────────────────────────────────────────────
 const DEFAULT_SPEC: SpecData = {
-  projectId: "proj_8f92a",
-  template: TEMPLATES[0],
-  prompt: "E-commerce store with Supabase auth & Stripe checkout",
-  status: "DRAFT",
-  requirements: `# FlashStore — E-Commerce Specification (PRD)\n\n## 1. Overview\nHigh-concurrency autonomous e-commerce engine.\n\n## 2. User Stories\n- US-01: Buyer browses and checks out via Stripe.\n- US-02: Admin inspects inventory and analytics.\n- US-03: Developer verifies container health and DB latency.\n\n## 3. Non-Functional Requirements\n- Supabase schema migration: < 200ms\n- Container boot: < 4.5s\n- Cloudflare SSL tunnel: zero manual DNS`,
-  architecture: `CREATE SCHEMA IF NOT EXISTS app_8f92a;\n\nCREATE TABLE app_8f92a.products (\n  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n  name VARCHAR(255) NOT NULL,\n  price_cents INTEGER NOT NULL,\n  stock_count INTEGER NOT NULL DEFAULT 0,\n  created_at TIMESTAMPTZ DEFAULT NOW()\n);`,
+  projectId: 'proj_8f92a', template: TEMPLATES[0],
+  prompt: 'E-commerce store with Supabase auth & Stripe checkout', status: 'DRAFT',
+  requirements: '# FlashStore\n\nBuyers browse products and check out; admins manage inventory.',
+  architecture: 'React frontend → FastAPI backend → PostgreSQL',
   ibmBindings: [
-    {
-      tool: "IBM Code Engine",
-      purpose: "Serverless container fleet execution",
-      status: "Ready",
-    },
-    {
-      tool: "IBM Cloud DB",
-      purpose: "Isolated multi-tenant PostgreSQL schema",
-      status: "Ready",
-    },
-    {
-      tool: "Cloudflare Quick Tunnel",
-      purpose: "Public HTTPS SSL egress URL",
-      status: "Ready",
-    },
-    {
-      tool: "watsonx QA Inspector",
-      purpose: "Autonomous ESLint, Pytest, and Secret leak auditing",
-      status: "Ready",
-    },
+    { tool: 'IBM Code Engine', purpose: 'Container deployment', status: 'Ready' },
+    { tool: 'IBM Cloud DB', purpose: 'PostgreSQL', status: 'Ready' },
   ],
-  tasks: [
-    {
-      id: "TSK-01",
-      title: "Provision isolated PostgreSQL schema in IBM Cloud DB",
-      subagent: "Subagent Alpha (DB)",
-      estimate: "180ms",
-    },
-    {
-      id: "TSK-02",
-      title: "Synthesize FastAPI router & Pydantic models",
-      subagent: "Subagent Gamma (FastAPI)",
-      estimate: "1.2s",
-    },
-    {
-      id: "TSK-03",
-      title: "Execute watsonx security & unit test audit",
-      subagent: "Subagent Beta (QA)",
-      estimate: "2.6s",
-    },
-    {
-      id: "TSK-04",
-      title: "Launch dual container fleet & Cloudflare tunnel",
-      subagent: "Subagent Delta (Tunnel)",
-      estimate: "3.1s",
-    },
-  ],
-};
+  tasks: [{ id: 'TSK-01', title: 'Provision the application', subagent: 'Bob', estimate: 'Pending' }],
+}
 
-// ── Public top-bar tabs (only shown on the public shell) ─────────────────────
-const PUBLIC_TABS = [{ path: "/", label: "Home" }];
+function ProjectTelemetry({ project }: { project?: Project }) {
+  const { projectId } = useParams()
+  return DEMO_MODE ? <ProjectDetailsTelemetry /> : <TelemetryCharts project={project?.project_id === projectId ? project : undefined} />
+}
 
 export default function App() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { user } = useAuth();
-
-  const [runs, setRuns] = useState<Run[]>(DEMO_MODE ? mockData.runs : []);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [projectId, setProjectId] = useState('');
-  const [dataLoading, setDataLoading] = useState(false);
-  const [dataError, setDataError] = useState('');
-  const [dataReload, setDataReload] = useState(0);
-  const project = projects.find(item => item.id === projectId);
-  const isPerson2Page = ['/qa', '/history', '/playground', '/telemetry'].includes(location.pathname);
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { user } = useAuth()
+  const [runs, setRuns] = useState<Run[]>(DEMO_MODE ? mockData.runs : [])
+  const [projects, setProjects] = useState<Project[]>([])
+  const [projectId, setProjectId] = useState('')
+  const [dataLoading, setDataLoading] = useState(false)
+  const [dataError, setDataError] = useState('')
+  const [reload, setReload] = useState(0)
+  const [spec, setSpec] = useState<SpecData>(DEFAULT_SPEC)
+  const project = projects.find(item => item.id === projectId)
+  const projectPage = ['/qa', '/history', '/playground', '/telemetry'].includes(location.pathname)
 
   useEffect(() => {
-    if (DEMO_MODE) return;
-    let active = true;
-    setProjects([]); setProjectId(''); setRuns([]); setDataError('');
-    if (!user) return;
-    setDataLoading(true);
+    if (DEMO_MODE) return
+    let active = true
+    setProjects([]); setProjectId(''); setRuns([]); setDataError('')
+    if (!user) return
+    setDataLoading(true)
     loadProjects().then(rows => {
-      if (active) { setProjects(rows); setProjectId(rows[0]?.id ?? ''); }
-    }).catch(error => { if (active) setDataError(errorMessage(error)); })
-      .finally(() => { if (active) setDataLoading(false); });
-    return () => { active = false; };
-  }, [user?.id, dataReload]);
+      if (active) { setProjects(rows); setProjectId(rows[0]?.id ?? '') }
+    }).catch(error => { if (active) setDataError(errorMessage(error)) })
+      .finally(() => { if (active) setDataLoading(false) })
+    return () => { active = false }
+  }, [user?.id, reload])
 
   useEffect(() => {
-    if (DEMO_MODE || !projectId) return;
-    let active = true;
-    setRuns([]);
-    loadRuns(projectId).then(rows => { if (active) setRuns(rows); })
-      .catch(error => { if (active) setDataError(errorMessage(error)); });
-    return () => { active = false; };
-  }, [projectId]);
-  const [spec, setSpec] = useState<SpecData>(DEFAULT_SPEC);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [typingComplete, setTypingComplete] = useState(false);
+    if (DEMO_MODE || !projectId) return
+    let active = true
+    setRuns([])
+    loadRuns(projectId).then(rows => { if (active) setRuns(rows) })
+      .catch(error => { if (active) setDataError(errorMessage(error)) })
+    return () => { active = false }
+  }, [projectId])
 
-  useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [location.pathname]);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMobileMenuOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  const dashboard = (content: React.ReactNode) => <RequireAuth><DashboardLayout>
+    {!DEMO_MODE && projectPage ? <>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16 }}>
+        <label htmlFor="workspace-project">Project</label>
+        <select id="workspace-project" className="modal-input" value={projectId} disabled={dataLoading || !projects.length}
+          onChange={event => { setProjectId(event.target.value); setDataError('') }}>
+          {!projects.length && <option value="">{dataLoading ? 'Loading…' : 'No accessible projects'}</option>}
+          {projects.map(item => <option key={item.id} value={item.id}>{item.app_name}</option>)}
+        </select>
+        <button type="button" className="btn btn--ghost" onClick={() => setReload(value => value + 1)}>Refresh</button>
+      </div>
+      {dataError && <p role="alert">{dataError}</p>}
+      {dataLoading ? <p role="status">Loading projects…</p> : project ? content :
+        <p>No project data is available. Create a project or ask its owner to add you as a member.</p>}
+    </> : content}
+  </DashboardLayout></RequireAuth>
 
-  const handleGenerateSpec = (template: Template, prompt: string) => {
-    setSpec((prev) => ({ ...prev, template, prompt, status: "DRAFT" }));
-    navigate("/specs");
-  };
-  const handleApproveSpec = () => {
-    setSpec((prev) => ({ ...prev, status: "APPROVED" }));
-    navigate("/qa");
-  };
-  const handleReviseSpec = (feedback: string) => {
-    setSpec((prev) => ({
-      ...prev,
-      status: "CHANGES_REQUESTED",
-      requirements: `${prev.requirements}\n\n## Revision Request\n- ${feedback}`,
-    }));
-  };
+  const card = (content: React.ReactNode) => dashboard(<div className="workspace-card glass-card page-enter">{content}</div>)
+  const generateSpec = (template: Template, prompt: string) => {
+    setSpec(previous => ({ ...previous, template, prompt, status: 'DRAFT' }))
+    navigate('/specs')
+  }
 
-  const isActive = (path: string) =>
-    path === "/"
-      ? location.pathname === "/"
-      : location.pathname.startsWith(path + "/");
-
-  const navRef = useRef<HTMLElement>(null);
-  const indicatorRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const nav = navRef.current;
-    const indicator = indicatorRef.current;
-    if (!nav || !indicator) return;
-    const activeBtn = nav.querySelector<HTMLButtonElement>(".nav-link.active");
-    if (!activeBtn) return;
-    const navRect = nav.getBoundingClientRect();
-    const btnRect = activeBtn.getBoundingClientRect();
-    indicator.style.width = `${btnRect.width}px`;
-    indicator.style.transform = `translateX(${btnRect.left - navRect.left - 5}px)`;
-  }, [location.pathname]);
-
-  // ── Dashboard routes share the same layout ──────────────────────────────
-  const dashboardElement = (child: React.ReactNode) => (
-    <RequireAuth>
-      <DashboardLayout>
-        {!DEMO_MODE && isPerson2Page ? <>
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
-            <label htmlFor="person2-project">Project</label>
-            <select id="person2-project" className="modal-input" value={projectId} disabled={dataLoading || !projects.length}
-              onChange={event => { setProjectId(event.target.value); setDataError(''); }}>
-              {!projects.length && <option value="">{dataLoading ? 'Loading…' : 'No accessible projects'}</option>}
-              {projects.map(item => <option key={item.id} value={item.id}>{item.app_name}</option>)}
-            </select>
-            <button type="button" className="btn btn--ghost" disabled={dataLoading} onClick={() => setDataReload(value => value + 1)}>Refresh</button>
-          </div>
-          {dataError && <p role="alert" style={{ color: 'var(--red-fail)', marginBottom: 12 }}>{dataError}</p>}
-          {dataLoading ? <p role="status">Loading projects…</p> : project ? child :
-            <p>No project data is available. Create a project or ask its owner to add you as a member.</p>}
-        </> : child}
-      </DashboardLayout>
-    </RequireAuth>
-  );
-
-  return (
-    <Routes>
-      {/* ════════════════════════════════════════════════════════════
-          PUBLIC SHELL  — top-bar nav, hero homepage, login
-      ════════════════════════════════════════════════════════════ */}
-      <Route
-        path="/*"
-        element={
-          <div className="app-shell">
-            <BinaryCanvasBackground />
-            <div className="page">
-              {/* Top-bar header — public only */}
-              <header className="header">
-                <button
-                  type="button"
-                  className="logo-btn"
-                  onClick={() => navigate("/")}
-                  title="FlashMVP — Home"
-                >
-                  <img
-                    src="/assets/logo.webp"
-                    alt="FlashMVP"
-                    width="52"
-                    height="52"
-                  />
-                </button>
-
-                <nav
-                  className="nav-pill"
-                  aria-label="Main Navigation"
-                  ref={navRef}
-                >
-                  <div className="nav-pill-indicator" ref={indicatorRef} />
-                  {PUBLIC_TABS.map((tab) => (
-                    <button
-                      key={tab.path}
-                      type="button"
-                      className={`nav-link ${isActive(tab.path) ? "active" : ""}`}
-                      onClick={() => navigate(tab.path)}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </nav>
-
-                {user ? (
-                  <button
-                    type="button"
-                    className="sign-in-btn"
-                    onClick={() => navigate("/dashboard")}
-                  >
-                    {DASHBOARD_ICON} Dashboard
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="sign-in-btn"
-                    onClick={() => navigate("/login")}
-                  >
-                    Sign In
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  className={`burger-btn ${mobileMenuOpen ? "open" : ""}`}
-                  aria-label="Toggle navigation"
-                  aria-expanded={mobileMenuOpen}
-                  onClick={() => setMobileMenuOpen((v) => !v)}
-                >
-                  <span className="burger-bar" />
-                  <span className="burger-bar" />
-                  <span className="burger-bar" />
-                </button>
-              </header>
-
-              {/* Public page content */}
-              <main className="hero-workspace">
-                <Routes>
-                  {/* Home — fully public */}
-                  <Route
-                    path="/"
-                    element={
-                      <div className="hero-overview">
-                        <div
-                          className="trust-row anim"
-                          style={{ "--d": "0.05s" } as React.CSSProperties}
-                        >
-                          <div
-                            className="avatar-ring avatar-ring-1"
-                            title="IBM Cloud & Bob 2.0"
-                          >
-                            <div className="avatar-inner">
-                              <i
-                                className="fa-brands fa-ibm"
-                                style={{ fontSize: "16px" }}
-                              />
-                            </div>
-                          </div>
-                          <div
-                            className="avatar-ring avatar-ring-2"
-                            title="Docker Container Fleet"
-                          >
-                            <div className="avatar-inner">
-                              <i
-                                className="fa-brands fa-docker"
-                                style={{ fontSize: "15px" }}
-                              />
-                            </div>
-                          </div>
-                          <div
-                            className="avatar-ring avatar-ring-3"
-                            title="Cloudflare Quick Tunnel"
-                          >
-                            <div className="avatar-inner">
-                              <i
-                                className="fa-brands fa-cloudflare"
-                                style={{ fontSize: "15px" }}
-                              />
-                            </div>
-                          </div>
-                          <div className="trust-pill">
-                            <span className="trust-text">
-                              Powered by IBM Bob 2.0 &amp; Cloud Fleet
-                            </span>
-                          </div>
-                        </div>
-
-                        <TypewriterHero
-                          line1Text="FLASHMVP"
-                          line2Text="SPEC TO CONTAINER"
-                          onComplete={() => setTypingComplete(true)}
-                        />
-
-                        <p
-                          className={`subhead sequential-reveal ${typingComplete ? "sequential-reveal--visible" : ""}`}
-                          style={{ transitionDelay: "0.05s" }}
-                        >
-                          Autonomous agentic middleware proxy. Transform natural
-                          prompts into production-grade container fleets with
-                          automated 3-part SDD specs, instant IBM Cloud DB
-                          provisioning, and watsonx QA observability.
-                        </p>
-
-                        <div
-                          className={`sequential-reveal ${typingComplete ? "sequential-reveal--visible" : ""}`}
-                          style={{
-                            display: "flex",
-                            gap: 14,
-                            flexWrap: "wrap",
-                            justifyContent: "center",
-                            transitionDelay: "0.18s",
-                          }}
-                        >
-                          {user ? (
-                            <button
-                              type="button"
-                              className="cta-btn"
-                              onClick={() => navigate("/dashboard")}
-                            >
-                              {DASHBOARD_ICON} Go to Dashboard
-                            </button>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                className="cta-btn"
-                                onClick={() => navigate("/login")}
-                              >
-                                ⚡ Get Started
-                              </button>
-                              <button
-                                type="button"
-                                className="cta-btn"
-                                style={{
-                                  background: "rgba(255,255,255,0.08)",
-                                  color: "#fff",
-                                  border: "1px solid rgba(255,255,255,0.2)",
-                                }}
-                                onClick={() => navigate("/login")}
-                              >
-                                Sign In →
-                              </button>
-                            </>
-                          )}
-                        </div>
-
-                        <footer
-                          className={`stats sequential-reveal ${typingComplete ? "sequential-reveal--visible" : ""}`}
-                          aria-label="Platform Statistics"
-                          style={{
-                            marginTop: "clamp(24px, 4vh, 48px)",
-                            transitionDelay: "0.32s",
-                          }}
-                        >
-                          {[
-                            {
-                              icon: "<",
-                              value: "200",
-                              suffix: "ms",
-                              label: "DB Provisioning",
-                            },
-                            {
-                              icon: "%",
-                              value: "99.9",
-                              suffix: "%",
-                              label: "watsonx QA Reliability",
-                            },
-                            {
-                              icon: "*",
-                              value: "24",
-                              suffix: "/7",
-                              label: "Autonomous Container Fleet",
-                            },
-                            {
-                              icon: "#",
-                              value: "1",
-                              suffix: "-Click",
-                              label: "Spec-to-Deploy Cycle",
-                            },
-                          ].map((s) => (
-                            <div key={s.label} className="stat-item">
-                              <div className="stat-top">
-                                <span className="stat-icon">{s.icon}</span>
-                                <div className="stat-value-group">
-                                  <span className="stat-value">{s.value}</span>
-                                  <span className="stat-suffix">
-                                    {s.suffix}
-                                  </span>
-                                </div>
-                              </div>
-                              <span className="stat-label">{s.label}</span>
-                            </div>
-                          ))}
-                        </footer>
-                      </div>
-                    }
-                  />
-
-                  {/* Login — redirects to /dashboard if already signed in */}
-                  <Route
-                    path="/login"
-                    element={
-                      user ? (
-                        <Navigate to="/dashboard" replace />
-                      ) : (
-                        <LoginPage />
-                      )
-                    }
-                  />
-
-                  {/* Catch-all inside public shell → home */}
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </main>
-            </div>
-
-            {/* Mobile drawer */}
-            {mobileMenuOpen && (
-              <>
-                <div
-                  className="mobile-overlay"
-                  onClick={() => setMobileMenuOpen(false)}
-                />
-                <nav
-                  className="mobile-menu-sheet"
-                  aria-label="Mobile Navigation"
-                >
-                  <button
-                    type="button"
-                    className="mobile-nav-link"
-                    onClick={() => {
-                      navigate("/");
-                      setMobileMenuOpen(false);
-                    }}
-                  >
-                    Home
-                  </button>
-                  {user ? (
-                    <button
-                      type="button"
-                      className="mobile-sign-in"
-                      onClick={() => {
-                        navigate("/dashboard");
-                        setMobileMenuOpen(false);
-                      }}
-                    >
-                      {DASHBOARD_ICON} Dashboard
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="mobile-sign-in"
-                      onClick={() => {
-                        navigate("/login");
-                        setMobileMenuOpen(false);
-                      }}
-                    >
-                      ⚡ Get Started
-                    </button>
-                  )}
-                </nav>
-              </>
-            )}
-          </div>
-        }
-      />
-
-      {/* ════════════════════════════════════════════════════════════
-          DASHBOARD SHELL  — sidebar layout, all protected routes
-      ════════════════════════════════════════════════════════════ */}
-
-      <Route
-        path="/dashboard"
-        element={dashboardElement(
-          <div className="workspace-card glass-card page-enter">
-            <TemplateSelector onGenerate={handleGenerateSpec} />
-          </div>,
-        )}
-      />
-
-      <Route
-        path="/starter"
-        element={dashboardElement(
-          <div className="workspace-card glass-card page-enter">
-            <TemplateSelector onGenerate={handleGenerateSpec} />
-          </div>,
-        )}
-      />
-
-      <Route
-        path="/specs"
-        element={dashboardElement(
-          <div className="workspace-card glass-card page-enter">
-            <SpecReviewer
-              spec={spec}
-              onApprove={handleApproveSpec}
-              onRevise={handleReviseSpec}
-            />
-          </div>,
-        )}
-      />
-
-      <Route
-        path="/qa"
-        element={dashboardElement(
-          <div className="workspace-card glass-card page-enter">
-            <QACanvas
-              key={projectId}
-              nextRunNumber={Math.max(0, ...runs.map((r) => r.run_number)) + 1}
-              onRunComplete={(run) => setRuns((prev) => [run, ...prev])}
-            />
-          </div>,
-        )}
-      />
-
-      <Route
-        path="/history"
-        element={dashboardElement(
-          <div className="workspace-card glass-card page-enter">
-            <RunHistoryTable runs={runs} />
-          </div>,
-        )}
-      />
-
-      <Route
-        path="/playground"
-        element={dashboardElement(
-          <div className="workspace-card glass-card page-enter">
-            <PlaygroundWindow key={projectId} project={project} />
-          </div>,
-        )}
-      />
-
-      <Route
-        path="/telemetry"
-        element={dashboardElement(
-          <div className="workspace-card glass-card page-enter telemetry-viewport">
-            <div className="telemetry-layout">
-              <TelemetryCharts key={projectId} project={project} />
-            </div>
-          </div>,
-        )}
-      />
-
-      <Route
-        path="/hub"
-        element={dashboardElement(
-          <div className="workspace-card glass-card page-enter">
-            <AppCatalog onOpenPlayground={() => navigate("/playground")} />
-          </div>,
-        )}
-      />
-    </Routes>
-  );
+  return <Routes>
+    <Route path="/" element={user ? <Navigate to="/dashboard" replace /> :
+      <div className="app-shell"><BinaryCanvasBackground /><div className="page">
+        <header className="header">
+          <button type="button" className="logo-btn" onClick={() => navigate('/')} title="FlashMVP — Home">
+            <img src="/assets/logo.webp" alt="FlashMVP" width="52" height="52" />
+          </button>
+          <nav className="nav-pill" aria-label="Main Navigation"><button type="button" className="nav-link active">Home</button></nav>
+          <button type="button" className="sign-in-btn" onClick={() => navigate('/login')}><Zap size={14} /> Sign In</button>
+        </header>
+        <main className="hero-workspace"><LandingHomePage /></main>
+      </div></div>} />
+    <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
+    <Route path="/dashboard" element={card(<ProjectsDashboard />)} />
+    <Route path="/project/:projectId/details" element={card(<ProjectDetailsPage />)} />
+    <Route path="/project/:projectId/telemetry" element={card(<ProjectTelemetry project={projects.find(item => item.project_id === location.pathname.split('/')[2])} />)} />
+    <Route path="/project/:projectId" element={card(<ProjectDetailsPage />)} />
+    <Route path="/env-config" element={card(<EnvironmentConfigPage />)} />
+    <Route path="/skill-pack" element={card(<SkillPackageInspector />)} />
+    <Route path="/starter" element={card(<TemplateSelector onGenerate={generateSpec} />)} />
+    <Route path="/specs" element={card(<SpecReviewer spec={spec}
+      onApprove={() => { setSpec(previous => ({ ...previous, status: 'APPROVED' })); navigate('/qa') }}
+      onRevise={feedback => setSpec(previous => ({ ...previous, status: 'CHANGES_REQUESTED', requirements: `${previous.requirements}\n\n## Revision Request\n- ${feedback}` }))} />)} />
+    <Route path="/qa" element={card(<QACanvas key={projectId} runs={runs}
+      nextRunNumber={Math.max(0, ...runs.map(run => run.run_number)) + 1}
+      onRunComplete={run => setRuns(previous => [run, ...previous])} />)} />
+    <Route path="/history" element={card(<RunHistoryTable runs={runs} />)} />
+    <Route path="/playground" element={card(<PlaygroundWindow key={projectId} project={project} />)} />
+    <Route path="/telemetry" element={card(<div className="telemetry-layout"><TelemetryCharts key={projectId} project={project} /></div>)} />
+    <Route path="/hub" element={card(<AppCatalog onOpenPlayground={() => navigate('/playground')} />)} />
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Routes>
 }

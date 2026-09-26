@@ -7,6 +7,7 @@
  */
 import type { ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
+import { Zap } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 
 interface RequireAuthProps {
@@ -24,7 +25,7 @@ export default function RequireAuth({ children }: RequireAuthProps) {
         height: '100vh', color: 'rgba(255,255,255,0.35)', fontSize: 13,
         gap: 10,
       }}>
-        <span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>⚡</span>
+        <Zap size={18} color="#0F62FE" style={{ animation: 'spin 1s linear infinite' }} />
         Restoring session…
       </div>
     )

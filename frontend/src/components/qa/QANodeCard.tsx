@@ -1,43 +1,34 @@
+import { CheckCircle2, XCircle, MinusCircle, Clock, Loader2, Settings } from 'lucide-react'
+
 type NodeStatus = 'PENDING' | 'RUNNING' | 'PASSED' | 'FAILED' | 'SKIPPED'
-
-const STATUS_ICON: Record<NodeStatus, string> = {
-  PENDING: '»', RUNNING: '…', PASSED: '✓', FAILED: '!', SKIPPED: '−',
-}
-
 type Props = {
-  number: number
-  name: string
-  filePath: string
-  status: NodeStatus
-  selected: boolean
-  disabled: boolean
-  error?: string
-  onToggle: (selected: boolean) => void
+  id: string; name: string; command: string; status: NodeStatus; durationMs: number
+  enabled: boolean; elapsed?: number; error?: string; running: boolean
+  onToggle: (id: string, enabled: boolean) => void; onSelect: () => void
 }
 
-export default function QANodeCard({ number, name, filePath, status, selected, disabled, error, onToggle }: Props) {
-  return (
-    <article className={`qa-node-card${!selected ? ' qa-node-card--disabled' : ''}`}>
-      <div className="qa-node-heading">
-        <span className="qa-node-number">{String(number).padStart(2, '0')}</span>
-        <h3 className="qa-node-name">{name}</h3>
-        <span className={`qa-node-status qa-stage-progress qa-stage-progress--${status.toLowerCase()}`}
-          role="status" aria-label={`${name}: ${status.toLowerCase()}`} title={status.toLowerCase()}>
-          <span aria-hidden="true">{STATUS_ICON[status]}</span>
-        </span>
-      </div>
-      <div className="qa-node-details">
-        <code className="qa-node-path" title={filePath}>{filePath}</code>
-        {status === 'FAILED' && <div className="qa-node-error" role="alert">
-          <strong>Why it failed</strong>
-          <pre>{error || 'The runner did not provide error details for this job.'}</pre>
-        </div>}
-        <label className="qa-node-toggle">
-          <input type="checkbox" checked={selected} disabled={disabled}
-            onChange={(event) => onToggle(event.target.checked)} />
-          Include in this run
-        </label>
-      </div>
-    </article>
-  )
+export default function QANodeCard({ id, name, command, status, durationMs, enabled, elapsed, error, running, onToggle, onSelect }: Props) {
+  const Icon = status === 'PASSED' ? CheckCircle2 : status === 'FAILED' ? XCircle :
+    status === 'SKIPPED' ? MinusCircle : status === 'RUNNING' ? Loader2 : Clock
+  return <article className={`qa-node-card qa-node-card--${status.toLowerCase()}${enabled ? '' : ' qa-node-card--disabled'}`}>
+    <button type="button" onClick={onSelect} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      width: '100%', color: 'inherit', background: 'transparent', border: 0, padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+      <strong className="qa-node-name">{name}</strong>
+      <span className={`badge badge--${status.toLowerCase()}`} aria-label={`${name}: ${status.toLowerCase()}`}>
+        <Icon size={13} /> {status}
+      </span>
+    </button>
+    <code title={command} style={{ display: 'block', overflowWrap: 'anywhere', color: '#A7F3D0', fontSize: 11 }}>{command}</code>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+      <span className="qa-node-duration">{status === 'PASSED' || status === 'FAILED' ?
+        `${((elapsed ?? durationMs) / 1000).toFixed(1)}s` : `~${(durationMs / 1000).toFixed(1)}s`}</span>
+      <label className="qa-node-toggle"><input type="checkbox" checked={enabled} disabled={running}
+        onChange={event => onToggle(id, event.target.checked)} /> Enabled</label>
+      <button type="button" onClick={onSelect} aria-label={`Inspect ${name}`} style={{ background: 'transparent', border: 0, color: 'inherit', cursor: 'pointer' }}>
+        <Settings size={14} />
+      </button>
+    </div>
+    {status === 'FAILED' && <div className="qa-node-error" role="alert"><strong>Why it failed</strong>
+      <pre>{error || 'The runner did not provide error details for this job.'}</pre></div>}
+  </article>
 }

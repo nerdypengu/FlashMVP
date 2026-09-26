@@ -122,6 +122,7 @@
   background: #191919;
   border: 1px solid #2c2c2c;
   border-radius: 9px;
+  padding: 10px;
   overflow: hidden;
   transition: border-color 0.2s;
   cursor: default;
@@ -178,6 +179,10 @@
 .qa-stage-empty, .qa-runner-note { color: #92918f; font-size: 12px; line-height: 1.5; }
 .qa-stage-empty { padding: 12px 4px; text-align: center; }
 .qa-runner-note { margin-top: 8px; text-align: center; }
+.badge--skipped { background: rgba(255,255,255,0.08); color: var(--text-muted); }
+
+/* Connector */
+.qa-connector { display: flex; align-items: center; }
 
 /* Summary Bar */
 .qa-summary-bar {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import ServiceSwitcher from './ServiceSwitcher'
 import DatabaseSchema from './DatabaseSchema'
 import { DEMO_MODE, errorMessage, loadServices, type Project, type ServiceRecord } from '../../lib/person2Data'
+import { Lock, Globe, Zap, Monitor, Tablet, Smartphone, ShoppingBag, Settings, Database } from 'lucide-react'
 
 type Viewport = 'desktop' | 'tablet' | 'mobile'
 
@@ -103,7 +104,7 @@ export default function PlaygroundWindow({ project }: { project?: Project }) {
             gap: 8,
           }}
         >
-          🔒 <span style={{ color: 'var(--text-primary)' }}>{currentUrl}</span>
+          <Lock size={12} color="var(--text-muted)" /> <span style={{ color: 'var(--text-primary)' }}>{currentUrl}</span>
         </div>
 
         {/* Live Tunnel vs Interactive Sandbox Toggle */}
@@ -118,10 +119,13 @@ export default function PlaygroundWindow({ project }: { project?: Project }) {
               fontSize: 11,
               padding: '5px 10px',
               cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
             }}
             title="Toggle between Interactive Sandbox Simulation and Real Iframe Tunnel"
           >
-            {useLiveIframe ? '🌐 Real Tunnel' : '⚡ Interactive Sandbox'}
+            {useLiveIframe ? <><Globe size={13} /> Real Tunnel</> : <><Zap size={13} /> Interactive Sandbox</>}
           </button>
         </div>
 
@@ -139,9 +143,12 @@ export default function PlaygroundWindow({ project }: { project?: Project }) {
                 cursor: 'pointer',
                 fontSize: 11,
                 padding: '4px 8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
               }}
             >
-              {v === 'desktop' ? '🖥' : v === 'tablet' ? '📱' : '📲'} {v}
+              {v === 'desktop' ? <Monitor size={12} /> : v === 'tablet' ? <Tablet size={12} /> : <Smartphone size={12} />} {v}
             </button>
           ))}
         </div>
@@ -174,7 +181,9 @@ export default function PlaygroundWindow({ project }: { project?: Project }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 16 }}>
                     <div>
-                      <h3 style={{ fontSize: 18, color: '#fff', margin: 0 }}>🛍️ FlashStore — Preview</h3>
+                      <h3 style={{ fontSize: 18, color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <ShoppingBag size={20} color="var(--ibm-blue)" /> FlashStore — Preview
+                      </h3>
                       <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0' }}>Container: <code>app-8f92a_frontend:3001</code> · Host Port: 3001</p>
                     </div>
                     <span className="badge badge--passed">● Live (HTTP 200)</span>
@@ -198,8 +207,8 @@ export default function PlaygroundWindow({ project }: { project?: Project }) {
                     ))}
                   </div>
 
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: 12 }}>
-                    ⚡ Cloudflare Quick Tunnel Connected: <code>https://app-8f92a.trycloudflare.com</code>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <Zap size={12} color="var(--ibm-blue)" /> Cloudflare Quick Tunnel Connected: <code>https://app-8f92a.trycloudflare.com</code>
                   </div>
                 </div>
               )}
@@ -208,7 +217,9 @@ export default function PlaygroundWindow({ project }: { project?: Project }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 16 }}>
                     <div>
-                      <h3 style={{ fontSize: 18, color: '#fff', margin: 0 }}>⚙️ FastAPI Interactive OpenAPI Docs</h3>
+                      <h3 style={{ fontSize: 18, color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Settings size={20} color="var(--ibm-blue)" /> FastAPI Interactive OpenAPI Docs
+                      </h3>
                       <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0' }}>Container: <code>app-8f92a_backend:8001</code> · Host Port: 8001</p>
                     </div>
                     <span className="badge badge--passed">FastAPI v0.115.0</span>
@@ -238,7 +249,9 @@ export default function PlaygroundWindow({ project }: { project?: Project }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 16 }}>
                     <div>
-                      <h3 style={{ fontSize: 18, color: '#fff', margin: 0 }}>🛢️ Supabase Dynamic Schema Console</h3>
+                      <h3 style={{ fontSize: 18, color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Database size={20} color="var(--ibm-blue)" /> Supabase Dynamic Schema Console
+                      </h3>
                       <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0' }}>Schema: <code>app_8f92a</code> · Provisioned in <strong>184ms</strong> via Bob Subagent Alpha</p>
                     </div>
                     <span className="badge badge--passed">PostgreSQL 16.2</span>
