@@ -266,7 +266,7 @@ export default function App() {
 
             {/* ── QA Canvas: PERSON 2 ── */}
             <Route path="/qa" element={
-              <div className="workspace-card glass-card page-enter">
+              <div className="workspace-card qa-workspace page-enter">
                 <QACanvas
                   nextRunNumber={Math.max(0, ...runs.map(r => r.run_number)) + 1}
                   onRunComplete={run => setRuns(prev => [run, ...prev])}

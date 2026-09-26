@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react'
 
 type AddStepModalProps = {
-  onAdd: (step: { id: string; name: string; command: string; durationMs: number; timeoutSeconds: number; enabled: boolean; status: string }) => void
+  stages: readonly string[]
+  onAdd: (step: { id: string; name: string; command: string; durationMs: number; timeoutSeconds: number; enabled: boolean; status: string; stage: string }) => void
   onClose: () => void
 }
 
-export default function AddStepModal({ onAdd, onClose }: AddStepModalProps) {
+export default function AddStepModal({ stages, onAdd, onClose }: AddStepModalProps) {
   const [name, setName] = useState('')
   const [command, setCommand] = useState('')
   const [timeout, setTimeout_] = useState(30)
+  const [stage, setStage] = useState(stages[0])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -26,6 +28,7 @@ export default function AddStepModal({ onAdd, onClose }: AddStepModalProps) {
       timeoutSeconds: timeout,
       enabled: true,
       status: 'PENDING',
+      stage,
     })
     onClose()
   }
@@ -56,6 +59,13 @@ export default function AddStepModal({ onAdd, onClose }: AddStepModalProps) {
             value={command}
             onChange={e => setCommand(e.target.value)}
           />
+        </div>
+
+        <div className="modal-field">
+          <label htmlFor="qa-step-stage">Stage</label>
+          <select id="qa-step-stage" className="modal-input" value={stage} onChange={e => setStage(e.target.value)}>
+            {stages.map(option => <option key={option} value={option}>{option}</option>)}
+          </select>
         </div>
 
         <div className="modal-field">

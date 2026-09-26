@@ -1,8 +1,8 @@
 {
   "steps": [
-    { "id": "s1", "name": "ESLint Check",         "command": "npx eslint .", "durationMs": 800,  "enabled": true, "status": "PENDING" },
-    { "id": "s2", "name": "Pytest Suite",          "command": "pytest",       "durationMs": 1200, "enabled": true, "status": "PENDING" },
-    { "id": "s3", "name": "Watsonx Security Audit","command": "watsonx-scan .","durationMs": 600, "enabled": true, "status": "PENDING" }
+    { "id": "s1", "name": "ESLint Check",         "command": "npx eslint .", "durationMs": 800,  "enabled": true, "status": "PENDING", "stage": "Checks" },
+    { "id": "s2", "name": "Pytest Suite",          "command": "pytest",       "durationMs": 1200, "enabled": true, "status": "PENDING", "stage": "Checks" },
+    { "id": "s3", "name": "Watsonx Security Audit","command": "watsonx-scan .","durationMs": 600, "enabled": true, "status": "PENDING", "stage": "Security" }
   ],
   "runs": [
     {
