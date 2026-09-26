@@ -18,17 +18,18 @@
   flex-wrap: wrap;
   gap: 0;
   padding: 24px;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  background: rgba(8, 8, 18, 0.80);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: var(--radius);
   min-height: 140px;
   position: relative;
+  backdrop-filter: blur(24px);
 }
 
 /* Node Card */
 .qa-node-card {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--glass-border);
+  background: rgba(20, 20, 36, 0.90);
+  border: 1px solid rgba(255,255,255,0.22);
   border-radius: var(--radius);
   padding: 14px 18px;
   min-width: 160px;
@@ -62,8 +63,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
+  background: rgba(8, 8, 18, 0.85);
+  border: 1px solid rgba(255,255,255,0.22);
   border-radius: var(--radius);
   font-size: 13px;
 }
@@ -80,8 +81,8 @@
 }
 .btn:hover { opacity: 0.85; }
 .btn--primary   { background: var(--ibm-blue);   color: #fff; }
-.btn--secondary { background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-primary); }
-.btn--ghost     { background: transparent; border: 1px solid var(--glass-border); color: var(--text-muted); }
+.btn--secondary { background: rgba(20, 20, 36, 0.90); border: 1px solid rgba(255,255,255,0.22); color: var(--text-primary); }
+.btn--ghost     { background: transparent; border: 1px solid rgba(255,255,255,0.22); color: var(--text-muted); }
 .btn:disabled   { opacity: 0.4; cursor: not-allowed; }
 
 /* Add Step Button */
@@ -102,7 +103,7 @@
 .context-menu {
   position: fixed;
   z-index: 1000;
-  background: #1c1c28;
+  background: rgba(15, 15, 28, 0.96);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius);
   padding: 6px 0;
@@ -131,7 +132,7 @@
   display: flex; align-items: center; justify-content: center;
 }
 .modal-box {
-  background: #1c1c28;
+  background: rgba(15, 15, 28, 0.97);
   border: 1px solid var(--glass-border);
   border-radius: 10px;
   padding: 28px;
@@ -143,7 +144,7 @@
 .modal-field { display: flex; flex-direction: column; gap: 6px; }
 .modal-field label { font-size: 12px; color: var(--text-muted); }
 .modal-input {
-  background: var(--glass-bg); border: 1px solid var(--glass-border);
+  background: rgba(20, 20, 36, 0.90); border: 1px solid rgba(255,255,255,0.22);
   border-radius: 6px; color: var(--text-primary); font-size: 13px;
   padding: 8px 12px; outline: none; transition: border-color 0.15s;
 }

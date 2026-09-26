@@ -4,6 +4,7 @@ import {
   ResponsiveContainer, Legend,
 } from 'recharts'
 import mockData from '../../mocks/telemetry_mock.json'
+import './telemetry.css'
 
 type DataPoint = { time: string; cpu: number; ram: number }
 
@@ -35,9 +36,10 @@ export default function TelemetryCharts() {
   }, [])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div className="glass-card">
-        <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 16 }}>📈 CPU Usage (%)</div>
+    <div className="telemetry-chart-grid">
+      <section style={{ minWidth: 0 }} aria-labelledby="cpu-usage-title">
+        <h2 id="cpu-usage-title" className="telemetry-panel-title">CPU Usage <span>%</span></h2>
+        <div className="telemetry-panel">
         <ResponsiveContainer width="100%" height={200}>
           <LineChart data={data} margin={{ top: 4, right: 16, bottom: 4, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
@@ -54,10 +56,12 @@ export default function TelemetryCharts() {
             />
           </LineChart>
         </ResponsiveContainer>
-      </div>
+        </div>
+      </section>
 
-      <div className="glass-card">
-        <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 16 }}>🧠 Memory Usage (MB)</div>
+      <section style={{ minWidth: 0 }} aria-labelledby="memory-usage-title">
+        <h2 id="memory-usage-title" className="telemetry-panel-title">Memory Usage <span>MB</span></h2>
+        <div className="telemetry-panel">
         <ResponsiveContainer width="100%" height={200}>
           <LineChart data={data} margin={{ top: 4, right: 16, bottom: 4, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
@@ -74,7 +78,8 @@ export default function TelemetryCharts() {
             />
           </LineChart>
         </ResponsiveContainer>
-      </div>
+        </div>
+      </section>
     </div>
   )
 }

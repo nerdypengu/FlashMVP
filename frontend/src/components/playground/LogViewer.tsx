@@ -37,7 +37,7 @@ const LIVE_LINES: Record<string, string[]> = {
 export default function LogViewer() {
   const [container, setContainer] = useState<'frontend' | 'backend'>('frontend')
   const [logs, setLogs] = useState<string[]>(MOCK_LOGS['frontend'])
-  const logEndRef = useRef<HTMLDivElement>(null)
+  const logContainerRef = useRef<HTMLDivElement>(null)
 
   // Reset logs on container switch
   useEffect(() => {
@@ -58,16 +58,18 @@ export default function LogViewer() {
     return () => clearInterval(timer)
   }, [container])
 
-  // Auto-scroll
+  // Follow new logs inside the terminal without scrolling the page.
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const terminal = logContainerRef.current
+    if (terminal) terminal.scrollTop = terminal.scrollHeight
   }, [logs])
 
   return (
-    <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontWeight: 600, fontSize: 13 }}>🖥️ Container Logs</span>
+    <section className="telemetry-logs" aria-labelledby="container-logs-title">
+      <div className="telemetry-panel-heading">
+        <h2 id="container-logs-title" className="telemetry-panel-title">Container Logs</h2>
         <select
+          aria-label="Log container"
           value={container}
           onChange={e => setContainer(e.target.value as 'frontend' | 'backend')}
           style={{
@@ -80,8 +82,7 @@ export default function LogViewer() {
           <option value="backend">backend</option>
         </select>
       </div>
-      <div style={{
-        background: '#070710', border: '1px solid var(--glass-border)', borderRadius: 6,
+      <div ref={logContainerRef} className="telemetry-panel telemetry-log-viewport" style={{
         padding: '12px 14px', height: 260, overflowY: 'auto', fontFamily: 'monospace',
         fontSize: 12, lineHeight: 1.7,
       }}>
@@ -90,8 +91,7 @@ export default function LogViewer() {
             {line}
           </div>
         ))}
-        <div ref={logEndRef} />
       </div>
-    </div>
+    </section>
   )
 }

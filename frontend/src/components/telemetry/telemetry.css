@@ -1,0 +1,81 @@
+.telemetry-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+}
+
+.workspace-card .telemetry-layout {
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.telemetry-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.telemetry-panel {
+  min-width: 0;
+  padding: 16px;
+  background: #101116;
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+}
+
+.telemetry-panel-title {
+  margin: 0 0 12px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.telemetry-panel-title span {
+  margin-left: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.telemetry-logs { margin-block: 28px; }
+
+.telemetry-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.telemetry-panel-heading .telemetry-panel-title { margin: 0; }
+
+.telemetry-log-viewport {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #424652 transparent;
+  scroll-behavior: smooth;
+}
+
+.telemetry-log-viewport::-webkit-scrollbar { width: 6px; }
+.telemetry-log-viewport::-webkit-scrollbar-track { background: transparent; }
+.telemetry-log-viewport::-webkit-scrollbar-thumb {
+  background: #424652;
+  border-radius: 999px;
+}
+.telemetry-log-viewport::-webkit-scrollbar-thumb:hover { background: #626879; }
+
+@media (max-width: 640px) {
+  .telemetry-layout { padding: 14px; }
+  .telemetry-chart-grid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .telemetry-log-viewport { scroll-behavior: auto; }
+}
