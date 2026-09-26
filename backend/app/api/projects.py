@@ -3,9 +3,9 @@ Projects API Routes
 POST /api/v1/projects/{project_id}/deploy — trigger a deploy run
 
 BL-SDD-03 enforcement: deploy is refused with 409 if the spec is not APPROVED.
+BL-QA-01 integration:  runs skill_watsonx_qa pipeline before deploying.
 BL-QA-03 integration:  creates a RunRecord on start, updates it on completion.
 """
-import asyncio
 import os
 from datetime import datetime, timezone
 
@@ -14,6 +14,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 from app.services.person2_store import bearer, user_token, get_project, get_services
 from pydantic import BaseModel
 
+from app.bob import skill_watsonx_qa
 from app.schemas.project import ProjectCreateRequest, ProjectCreateResponse
 from app.schemas.run import QAStepResult
 from app.services import run_store, spec_generator
@@ -84,36 +85,38 @@ async def deploy(project_id: str, body: DeployRequest) -> DeployResponse:
     record = run_store.create_run(project_id)
     start = datetime.now(timezone.utc)
 
-    if DEMO_MODE:
-        # Simulate a passing QA pipeline for demo purposes
-        await asyncio.sleep(0)   # yield to event loop (non-blocking)
-        qa_steps = [
-            QAStepResult(
-                step_name="ESLint",
-                status="PASSED",
-                duration_ms=3200,
-                log_output="✓ No linting errors found.",
-            ),
-            QAStepResult(
-                step_name="Pytest",
-                status="PASSED",
-                duration_ms=9800,
-                log_output="========== 24 passed in 9.78s ==========",
-            ),
-            QAStepResult(
-                step_name="IBM Watsonx Security",
-                status="PASSED",
-                duration_ms=5400,
-                log_output="✓ Security audit complete. No vulnerabilities detected.",
-            ),
-        ]
-        deployment_url = f"https://{project_id}.trycloudflare.com"
-        final_status = "PASSED"
-    else:
-        # Real pipeline hook — replace with actual IBM Bob subagent dispatch
-        raise NotImplementedError(
-            "Real deploy pipeline not yet implemented. Set DEMO_MODE=true."
+    # ── Run QA pipeline via IBM Bob skill_watsonx_qa (BL-QA-01) ──────────────
+    raw_steps = await skill_watsonx_qa.execute_qa_pipeline(
+        project_id=project_id,
+        project_path=".",
+    )
+    qa_steps = [
+        QAStepResult(
+            step_name=s["step_name"],
+            status=s["status"],
+            duration_ms=s["duration_ms"],
+            log_output=s["log_output"],
         )
+        for s in raw_steps
+    ]
+
+    # Block deploy if any QA step failed
+    if any(s.status == "FAILED" for s in qa_steps):
+        run_store.update_run(
+            project_id=project_id,
+            run_id=record.run_id,
+            status="FAILED",
+            duration_ms=int((datetime.now(timezone.utc) - start).total_seconds() * 1000),
+            qa_steps=qa_steps,
+            deployment_url=None,
+        )
+        raise HTTPException(
+            status_code=422,
+            detail="QA pipeline failed. Fix the reported issues and re-run before deploying.",
+        )
+
+    deployment_url = f"https://{project_id}.trycloudflare.com"
+    final_status = "PASSED"
 
     elapsed_ms = int(
         (datetime.now(timezone.utc) - start).total_seconds() * 1000

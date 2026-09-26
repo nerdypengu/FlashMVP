@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.specs import router as specs_router
 from app.api.runs import router as runs_router
 from app.api.projects import router as projects_router
+from app.api.qa import router as qa_router
 from app.api.secrets import router as secrets_router
 from app.api.scaffold import router as scaffold_router
 from app.api.containers import router as containers_router
@@ -30,6 +31,7 @@ app.add_middleware(
 app.include_router(specs_router)
 app.include_router(runs_router)
 app.include_router(projects_router)
+app.include_router(qa_router)
 app.include_router(secrets_router)
 app.include_router(scaffold_router)
 app.include_router(containers_router)
