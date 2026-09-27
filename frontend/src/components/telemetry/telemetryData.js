@@ -89,3 +89,39 @@ export function telemetryPollingInterval(stored) {
   const interval = Number(stored)
   return [5000, 10000, 30000, 60000].includes(interval) ? interval : 5000
 }
+
+/** Validate browser history and bound it to one hour and 1,500 samples per service.
+ * @returns {Array<{time: number, cpu: number | null, memory: number | null, health: number | null, rx: number | null, tx: number | null}>}
+ */
+export function telemetryHistory(points, now) {
+  if (!Array.isArray(points)) return []
+  return points.filter(point => point && Number.isFinite(point.time) && point.time >= now - 3600000 && point.time <= now)
+    .sort((a, b) => a.time - b.time).slice(-1500).map(point => ({ time: point.time,
+      ...Object.fromEntries(['cpu', 'memory', 'health', 'rx', 'tx'].map(key => [key, Number.isFinite(point[key]) ? point[key] : null])) }))
+}
+
+export function readTelemetryHistory(storage, key, now) {
+  try { return telemetryHistory(JSON.parse(storage.getItem(key) ?? '[]'), now) }
+  catch { return [] }
+}
+
+export function saveTelemetryHistory(storage, key, points, now) {
+  try {
+    // Remove expired telemetry entries without touching other browser storage.
+    for (let i = storage.length - 1; i >= 0; i--) {
+      const storedKey = storage.key(i)
+      if (storedKey?.startsWith('telemetry.history.v1:')) {
+        const retained = readTelemetryHistory(storage, storedKey, now)
+        if (!retained.length) storage.removeItem(storedKey)
+      }
+    }
+    storage.setItem(key, JSON.stringify(telemetryHistory(points, now)))
+    return true
+  } catch { return false }
+}
+
+/** Restore only supported time-range presets. */
+export function telemetryRange(stored) {
+  const minutes = Number(stored)
+  return [5, 15, 60].includes(minutes) ? minutes : 5
+}

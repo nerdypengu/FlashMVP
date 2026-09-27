@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Package, Bot, FileText, Zap, Folder, Check } from 'lucide-react'
 
-export default function SkillPackageInspector() {
+export default function SkillPackageInspector({ repository = 'ibmbob-dev/flashstore-api' }: { repository?: string }) {
   const navigate = useNavigate()
-  const [selectedRepo, setSelectedRepo] = useState('ibmbob-dev/flashstore-api')
+  const { projectId } = useParams()
+  const [selectedRepo, setSelectedRepo] = useState(repository)
   const [isInjecting, setIsInjecting] = useState(false)
   const [injectStep, setInjectStep] = useState(0)
   const [isDownloaded, setIsDownloaded] = useState(false)
@@ -326,7 +327,7 @@ export default function SkillPackageInspector() {
           </button>
           <button
             type="button"
-            onClick={() => navigate('/qa')}
+            onClick={() => navigate(projectId ? `/project/${projectId}/qa` : '/qa')}
             style={{
               padding: '8px 16px', borderRadius: 8,
               background: 'rgba(66,190,101,0.2)', color: '#42BE65', fontSize: 12,

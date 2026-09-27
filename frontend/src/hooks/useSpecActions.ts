@@ -63,7 +63,6 @@ export function useSpecActions() {
   const revise = useCallback((feedback: string, sections: SpecSection[] = ['all']) => run('revise', async signal => {
     const current = sessionRef.current
     if (!current?.spec) throw new Error('There is no spec to revise yet.')
-    if (current.approvedAt) throw new Error('This spec is approved and locked.')
     const trimmed = feedback.trim()
     if (!trimmed) throw new Error('Describe what IBM Bob should change.')
     let spec: SpecResponse
@@ -79,6 +78,7 @@ export function useSpecActions() {
     addRevision({ id: `rev_${Date.now().toString(36)}`, feedback: trimmed, sections, at: new Date().toISOString() })
     return spec
   }), [run, setSpec, addRevision])
+
 
   const approve = useCallback(() => run('approve', async signal => {
     const current = sessionRef.current

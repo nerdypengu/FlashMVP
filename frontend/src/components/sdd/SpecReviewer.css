@@ -371,3 +371,47 @@
   .sr-tab-pill, .rr-arc, .tb-progress-fill { transition: none; }
   .sr-panel { scroll-behavior: auto; }
 }
+
+/* ── Continuous sync action bar ─────────────────────────────────── */
+.sr-dock--sync { align-items: center; justify-content: space-between; gap: 18px; padding: 14px 16px; }
+.sr-dock-info { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.sr-dock-icon { display: grid; place-items: center; flex: 0 0 40px; height: 40px; border-radius: 12px; color: #fff; background: linear-gradient(150deg, #4589ff, #6929c4); box-shadow: 0 10px 24px -10px rgba(69, 137, 255, 0.9); }
+.sr-dock--sync.is-synced .sr-dock-icon { background: linear-gradient(150deg, #42be65, #198038); box-shadow: 0 10px 24px -10px rgba(36, 161, 72, 0.9); }
+.sr-dock-title { font-size: 14.5px; font-weight: 700; letter-spacing: -0.01em; }
+.sr-dock-text { margin-top: 2px; font-size: 12.5px; line-height: 1.5; color: var(--fx-text-3); }
+.sr-dock-buttons { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.sr-meta-item--ok { color: var(--fx-green-2); }
+.sr-spin { animation: fx-rotate 0.9s linear infinite; }
+
+/* ── Package (.bob) explorer ───────────────────────────────────── */
+.pk-root { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px; min-height: 420px; }
+.pk-tree { padding: 14px 10px; border-radius: 14px; border: 1px solid var(--fx-line); background: rgba(0, 0, 0, 0.3); }
+.pk-tree-title { display: flex; align-items: center; gap: 7px; margin: 0 6px 12px; font-size: 11px; font-weight: 650; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fx-text-3); }
+.pk-folder + .pk-folder { margin-top: 12px; }
+.pk-folder-name { margin: 0 6px 4px; font: 500 11px var(--fx-mono); color: var(--fx-blue-3); opacity: 0.8; }
+.pk-folder ul { list-style: none; }
+.pk-file { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 8px; border: 0; border-radius: 8px; background: transparent; color: var(--fx-text-2); font: 500 12.5px var(--font-sans); text-align: left; cursor: pointer; transition: background 0.2s, color 0.2s; }
+.pk-file:hover { background: rgba(255, 255, 255, 0.05); color: var(--fx-text-1); }
+.pk-file.is-on { color: #fff; background: rgba(15, 98, 254, 0.2); box-shadow: inset 2px 0 0 #4589ff; }
+.pk-file svg { flex-shrink: 0; color: var(--fx-text-3); }
+.pk-file.is-on svg { color: var(--fx-blue-3); }
+.pk-file-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-file:focus-visible { outline: 2px solid var(--fx-blue-2); outline-offset: -2px; }
+.pk-status { flex-shrink: 0; padding: 2px 6px; border-radius: 5px; font: 650 9.5px var(--fx-mono); letter-spacing: 0.04em; color: var(--fx-green-2); background: rgba(36, 161, 72, 0.14); }
+.pk-status--template, .pk-status--config { color: var(--fx-violet-2); background: rgba(138, 63, 252, 0.16); }
+.pk-status--approved { color: var(--fx-blue-3); background: rgba(15, 98, 254, 0.18); }
+.pk-viewer { display: flex; flex-direction: column; min-width: 0; border-radius: 14px; border: 1px solid var(--fx-line-strong); background: #070810; overflow: hidden; }
+.pk-viewer-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--fx-line); background: rgba(255, 255, 255, 0.03); }
+.pk-path { font: 600 12.5px var(--fx-mono); color: var(--fx-text-1); overflow-wrap: anywhere; }
+.pk-meta { margin-top: 2px; font-size: 11.5px; color: var(--fx-text-3); }
+.pk-code { flex: 1; margin: 0; padding: 14px 0; overflow: auto; font: 400 12.5px/1.7 var(--fx-mono); color: #c9e8d8; counter-reset: ln; }
+.pk-line { display: block; padding: 0 16px 0 0; white-space: pre-wrap; }
+.pk-line:hover { background: rgba(255, 255, 255, 0.025); }
+.pk-ln { display: inline-block; width: 44px; margin-right: 14px; padding-right: 10px; text-align: right; color: rgba(206, 214, 232, 0.25); border-right: 1px solid var(--fx-line); user-select: none; }
+
+@media (max-width: 900px) {
+  .pk-root { grid-template-columns: 1fr; }
+  .sr-dock--sync { flex-direction: column; align-items: stretch; }
+  .sr-dock-buttons { flex-direction: column-reverse; }
+  .sr-dock-buttons .fx-btn { width: 100%; }
+}

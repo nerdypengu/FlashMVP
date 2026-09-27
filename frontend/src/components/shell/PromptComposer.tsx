@@ -45,24 +45,29 @@ type Props = {
   onSubmit: () => void
   template: StarterTemplate
   showError: boolean
+  /** Locks the text once a project spec exists (creation manifest). */
+  readOnly?: boolean
+  /** Show the example-prompt chips under the box. */
+  suggestions?: boolean
+  submitLabel?: string
 }
 
 const PromptComposer = forwardRef<HTMLTextAreaElement, Props>(function PromptComposer(
-  { value, onChange, onSubmit, template, showError }, ref,
+  { value, onChange, onSubmit, template, showError, readOnly = false, suggestions = true, submitLabel = 'Generate spec' }, ref,
 ) {
   const id = useId()
   const [focused, setFocused] = useState(false)
-  const placeholder = useTypingPlaceholder(!value)
+  const placeholder = useTypingPlaceholder(!value && !readOnly)
   const ready = value.trim().length >= MIN_PROMPT_LENGTH
   const pct = Math.min(100, (value.length / MAX_PROMPT_LENGTH) * 100)
 
   return (
     <div className="pc-root">
-      <div className={`pc-shell${focused ? ' is-focused' : ''}${showError ? ' is-invalid' : ''}${ready ? ' is-ready' : ''}`}>
+      <div className={`pc-shell${focused && !readOnly ? ' is-focused' : ''}${showError ? ' is-invalid' : ''}${ready ? ' is-ready' : ''}${readOnly ? ' is-readonly' : ''}`}>
         <div className="pc-glow" aria-hidden="true" />
         <label htmlFor={id} className="fx-sr-only">Describe your project</label>
         <textarea id={id} ref={ref} className="pc-input" rows={3} maxLength={MAX_PROMPT_LENGTH}
-          value={value} placeholder={placeholder} aria-invalid={showError || undefined}
+          value={value} placeholder={placeholder} aria-invalid={showError || undefined} readOnly={readOnly}
           aria-describedby={`${id}-hint`}
           onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
           onChange={event => onChange(event.target.value)}
@@ -76,15 +81,17 @@ const PromptComposer = forwardRef<HTMLTextAreaElement, Props>(function PromptCom
           <span id={`${id}-hint`} className={`pc-hint${showError ? ' is-error' : ''}`}>
             {showError
               ? `At least ${MIN_PROMPT_LENGTH} characters`
-              : <><kbd className="fx-kbd">Ctrl</kbd><kbd className="fx-kbd"><CornerDownLeft size={10} /></kbd> to generate</>}
+              : readOnly
+                ? <>Creation manifest · locked</>
+                : <><kbd className="fx-kbd">Ctrl</kbd><kbd className="fx-kbd"><CornerDownLeft size={10} /></kbd> to generate</>}
           </span>
-          <button type="button" className="pc-send" onClick={onSubmit} aria-label="Generate spec with IBM Bob">
-            <span>Generate spec</span>
+          <button type="button" className="pc-send" onClick={onSubmit} aria-label={`${submitLabel} with IBM Bob`}>
+            <span>{submitLabel}</span>
             <span className="pc-send-icon"><ArrowUp size={15} strokeWidth={2.5} /></span>
           </button>
         </div>
       </div>
-      <div className="pc-suggestions" role="list" aria-label="Example prompts">
+      {suggestions && !readOnly && <div className="pc-suggestions" role="list" aria-label="Example prompts">
         <Sparkles size={13} aria-hidden="true" />
         {QUICK_PROMPTS.map(text => (
           <button key={text} type="button" role="listitem" className="pc-suggestion"
@@ -92,7 +99,7 @@ const PromptComposer = forwardRef<HTMLTextAreaElement, Props>(function PromptCom
             {text}
           </button>
         ))}
-      </div>
+      </div>}
     </div>
   )
 })

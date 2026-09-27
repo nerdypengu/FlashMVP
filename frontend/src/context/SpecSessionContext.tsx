@@ -2,8 +2,8 @@
  * SpecSessionContext — single source of truth for the SDD human-in-the-loop gate.
  *
  * Holds the selected template + prompt, the current IBM Bob spec, revision
- * history and approval lock. Persisted to localStorage so an approved spec
- * stays locked across reloads (BL-SDD-03 acceptance criterion #4).
+ * history and the last sync time. Persisted to localStorage so review progress
+ * and sync state survive reloads (BL-SDD-03). Specs stay editable after a sync.
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react'
 import { DEFAULT_PROJECT_ID } from '../config'
@@ -44,7 +44,6 @@ function reducer(state: SpecSession | null, action: Action): SpecSession | null 
     case 'addRevision':
       return { ...state, revisions: [action.entry, ...state.revisions] }
     case 'toggleReviewed': {
-      if (state.approvedAt) return state
       const has = state.reviewedTaskIds.includes(action.taskId)
       return {
         ...state,
@@ -54,7 +53,7 @@ function reducer(state: SpecSession | null, action: Action): SpecSession | null 
       }
     }
     case 'setAllReviewed':
-      if (state.approvedAt || !state.spec) return state
+      if (!state.spec) return state
       return { ...state, reviewedTaskIds: action.reviewed ? state.spec.tasks.map(task => task.id) : [] }
     case 'approve':
       return {

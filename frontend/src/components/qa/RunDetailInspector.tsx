@@ -1,4 +1,6 @@
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
+import { Link, useParams } from 'react-router-dom'
 import { DEMO_MODE } from '../../lib/person2Data'
 import { CheckCircle2, XCircle, MinusCircle, X } from 'lucide-react'
 
@@ -22,13 +24,14 @@ const MOCK_LOGS: Record<string, string> = {
 }
 
 export default function RunDetailInspector({ run, onClose }: Props) {
+  const { projectId } = useParams()
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  return (
+  return createPortal(
     <>
       {/* backdrop */}
       <div
@@ -39,11 +42,11 @@ export default function RunDetailInspector({ run, onClose }: Props) {
       <div role="dialog" aria-modal="true" aria-label={`Run #${run.run_number} details`} style={{
         position: 'fixed', top: 0, right: 0, bottom: 0, width: 480, maxWidth: '90vw',
         background: '#13131a', borderLeft: '1px solid var(--glass-border)',
-        zIndex: 101, overflowY: 'auto', display: 'flex', flexDirection: 'column',
+        zIndex: 101, overflow: 'hidden', display: 'flex', flexDirection: 'column',
         animation: 'qa-drawer-in 180ms ease-out',
       }}>
         {/* header */}
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ padding: '20px 24px', flexShrink: 0, borderBottom: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <div style={{ fontWeight: 700, fontSize: 15 }}>Run #{run.run_number}</div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
@@ -54,6 +57,10 @@ export default function RunDetailInspector({ run, onClose }: Props) {
                 {run.status === 'PASSED' ? <CheckCircle2 size={12} /> : <XCircle size={12} />} {run.status}
               </span>
             </div>
+            {projectId && <Link className="qa-run-open" style={{ display: 'inline-block', marginTop: 12 }}
+              to={`/project/${encodeURIComponent(projectId)}/qa?run=${run.run_number}`} onClick={onClose}>
+              Open Run #{run.run_number} in QA Canvas →
+            </Link>}
           </div>
           <button onClick={onClose} aria-label="Close run details" style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}>
             <X size={18} />
@@ -61,10 +68,10 @@ export default function RunDetailInspector({ run, onClose }: Props) {
         </div>
 
         {/* step results */}
-        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ padding: '20px 24px', flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ fontWeight: 600, fontSize: 13 }}>Step Results</div>
           {run.step_results.map(step => (
-            <div key={step.id} style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: 8, padding: '14px 16px' }}>
+            <div key={step.id} style={{ flexShrink: 0, background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', borderRadius: 8, padding: '14px 16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                 <span style={{ fontWeight: 600, fontSize: 13 }}>{step.name}</span>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -81,6 +88,6 @@ export default function RunDetailInspector({ run, onClose }: Props) {
           ))}
         </div>
       </div>
-    </>
+    </>, document.body
   )
 }

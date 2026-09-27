@@ -51,4 +51,4 @@ export type SpecSession = {
   approvedAt: string | null
 }
 
-export type SpecTab = 'requirements' | 'design' | 'tasks'
+export type SpecTab = 'requirements' | 'design' | 'tasks' | 'package'

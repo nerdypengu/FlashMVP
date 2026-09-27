@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { AlertTriangle, Bot, Database, Loader2, Lock, Rocket, ShieldCheck, X } from 'lucide-react'
 
+// Sync-and-deploy confirmation for the continuous SDD flow.
+
 const SUBAGENTS = [
   { icon: Database, name: 'Alpha', job: 'Provisions the IBM Cloud DB schema' },
   { icon: ShieldCheck, name: 'Beta', job: 'Runs Watsonx QA: lint, tests, secret scan' },
@@ -9,10 +11,11 @@ const SUBAGENTS = [
   { icon: Lock, name: 'Delta', job: 'Injects vault secrets & opens the SSL tunnel' },
 ]
 
-/** BL-SDD-03 — explicit human sign-off dialog before the spec is locked. */
-export default function ApprovalDialog({ open, approving, reviewed, total, revisions, onCancel, onConfirm }: {
+/** BL-SDD-03 — explicit human sign-off before IBM Bob syncs the specs and deploys. */
+export default function ApprovalDialog({ open, approving, reviewed, total, revisions, resync = false, onCancel, onConfirm }: {
   open: boolean
   approving: boolean
+  resync?: boolean
   reviewed: number
   total: number
   revisions: number
@@ -53,12 +56,12 @@ export default function ApprovalDialog({ open, approving, reviewed, total, revis
         <button type="button" className="ad-close" onClick={onCancel} disabled={approving} aria-label="Cancel"><X size={16} /></button>
         <div className="ad-seal" aria-hidden="true">
           <span className="ad-seal-ring" />
-          <span className="ad-seal-core"><Lock size={24} /></span>
+          <span className="ad-seal-core"><Rocket size={24} /></span>
         </div>
-        <h2 id="ad-title" className="ad-title">Approve & lock this spec?</h2>
+        <h2 id="ad-title" className="ad-title">{resync ? 'Re-sync & deploy updates?' : 'Sync specs & deploy?'}</h2>
         <p id="ad-desc" className="ad-desc">
-          Your sign-off freezes requirements, design and tasks, then hands control to IBM Bob’s deployment swarm.
-          This can’t be undone from the review screen.
+          IBM Bob verifies requirements, updates the technical design, runs Watsonx QA and rolls out your containers
+          on IBM Code Engine. Specs stay editable, so you can keep refining and re-sync anytime.
         </p>
 
         <dl className="ad-stats">
@@ -86,7 +89,7 @@ export default function ApprovalDialog({ open, approving, reviewed, total, revis
         <div className="ad-actions">
           <button type="button" className="fx-btn fx-btn--ghost" onClick={onCancel} disabled={approving}>Keep reviewing</button>
           <button type="button" ref={confirmRef} className="fx-btn fx-btn--success fx-btn--lg" onClick={onConfirm} disabled={approving}>
-            {approving ? <><Loader2 size={16} className="fx-spin" /> Locking spec…</> : <><Lock size={16} /> Approve & deploy</>}
+            {approving ? <><Loader2 size={16} className="fx-spin" /> Deploying…</> : <><Rocket size={16} /> Confirm & deploy</>}
           </button>
         </div>
       </div>

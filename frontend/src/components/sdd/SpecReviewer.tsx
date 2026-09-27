@@ -1,19 +1,21 @@
 /**
- * BL-SDD-02 + BL-SDD-03 — IBM Bob 2.0 Spec Review Gate
+ * BL-SDD-02 + BL-SDD-03 — IBM Bob 2.0 Spec Review
  *
- * The human-in-the-loop gate: nothing deploys until a developer reads the
- * 3-part artifact (Requirements · Technical Design · Task Breakdown), optionally
- * requests revisions, and explicitly approves. Once approved, every control is
- * read-only and the QA pipeline unlocks.
+ * Continuous, specs-driven review: the developer reads the 3-part artifact
+ * (Requirements · Technical Design · Task Breakdown) plus the tracked .bob
+ * package, adds requirements through IBM Bob (which re-syncs design and tasks),
+ * and syncs + deploys to IBM Cloud whenever the specs are ready. Specs stay
+ * editable after every sync.
  */
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import {
-  AlertTriangle, ArrowRight, Boxes, Check, CheckCircle2, ClipboardList, Copy, CornerDownLeft, FileText, History,
-  KeyRound, Loader2, Lock, MessageSquareText, Sparkles, Wand2, X,
+  AlertTriangle, ArrowRight, Boxes, Check, ClipboardList, Copy, FileText, Folder, History,
+  KeyRound, Rocket, Sparkles, Wand2, X,
 } from 'lucide-react'
 import RequirementsTab from './RequirementsTab'
 import DesignTab from './DesignTab'
 import TaskBreakdownTab from './TaskBreakdownTab'
+import PackageDocsTab from './PackageDocsTab'
 import IBMToolBindingsPanel from './IBMToolBindingsPanel'
 import SpecStatusBadge from './SpecStatusBadge'
 import ReviewRing from './ReviewRing'
@@ -29,20 +31,13 @@ const TABS: { id: SpecTab; label: string; short: string; icon: typeof FileText }
   { id: 'requirements', label: 'Requirements', short: 'Reqs', icon: FileText },
   { id: 'design', label: 'Technical Design', short: 'Design', icon: Boxes },
   { id: 'tasks', label: 'Task Breakdown', short: 'Tasks', icon: ClipboardList },
+  { id: 'package', label: 'Package (.bob)', short: '.bob', icon: Folder },
 ]
-
-const SECTION_OPTIONS: { id: SpecSection; label: string }[] = [
-  { id: 'all', label: 'All sections' },
-  { id: 'requirements', label: 'Requirements' },
-  { id: 'design', label: 'Design' },
-  { id: 'tasks', label: 'Tasks' },
-]
-
-const MAX_FEEDBACK = 800
 
 export type SpecReviewerProps = {
   spec: SpecResponse
-  isLocked: boolean
+  /** Kept for API compatibility — specs stay editable after every sync. */
+  isLocked?: boolean
   onApprove: () => Promise<unknown> | unknown
   onRevise: (feedback: string, sections: SpecSection[]) => Promise<unknown> | unknown
   pending?: SpecAction | null
@@ -70,27 +65,26 @@ const isTypingTarget = (target: EventTarget | null) => {
 }
 
 export default function SpecReviewer({
-  spec, isLocked, onApprove, onRevise, pending = null, error, onDismissError,
+  spec, onApprove, onRevise, pending = null, error, onDismissError,
   reviewedTaskIds = [], onToggleReviewed = () => {}, onSetAllReviewed = () => {},
   revisions = [], templateName, prompt, approvedAt, onOpenSecrets, onContinue,
 }: SpecReviewerProps) {
   const [activeTab, setActiveTab] = useState<SpecTab>('requirements')
-  const [feedback, setFeedback] = useState('')
-  const [sections, setSections] = useState<SpecSection[]>(['all'])
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [celebrate, setCelebrate] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [seenRevision, setSeenRevision] = useState<Record<SpecTab, number>>(() => ({ requirements: revisions.length, design: revisions.length, tasks: revisions.length }))
+  const [seenRevision, setSeenRevision] = useState<Record<SpecTab, number>>(() => ({
+    requirements: revisions.length, design: revisions.length, tasks: revisions.length, package: revisions.length,
+  }))
   const [panelEl, setPanelEl] = useState<HTMLDivElement | null>(null)
-  const tabRefs = useRef<Record<SpecTab, HTMLButtonElement | null>>({ requirements: null, design: null, tasks: null })
+  const tabRefs = useRef<Record<SpecTab, HTMLButtonElement | null>>({ requirements: null, design: null, tasks: null, package: null })
   const tabListRef = useRef<HTMLDivElement>(null)
-  const feedbackRef = useRef<HTMLTextAreaElement>(null)
-  const wasLocked = useRef(isLocked)
+  const lastSync = useRef(approvedAt)
   const [pill, setPill] = useState({ left: 0, width: 0 })
-  const feedbackId = useId()
   const busy = pending !== null
   const revising = pending === 'revise'
-  const approving = pending === 'approve'
+  const syncing = pending === 'approve'
+  const synced = !!approvedAt
 
   // Sliding pill behind the active tab.
   useLayoutEffect(() => {
@@ -104,49 +98,47 @@ export default function SpecReviewer({
     return () => observer.disconnect()
   }, [activeTab])
 
-  // Approval celebration: plays once when the spec flips to locked.
+  // Celebration plays every time a new sync completes.
   useEffect(() => {
-    if (isLocked && !wasLocked.current) {
+    if (approvedAt && approvedAt !== lastSync.current) {
+      lastSync.current = approvedAt
       setConfirmOpen(false)
       setCelebrate(true)
       const timer = setTimeout(() => setCelebrate(false), 2200)
-      wasLocked.current = true
       return () => clearTimeout(timer)
     }
-    wasLocked.current = isLocked
-  }, [isLocked])
+    lastSync.current = approvedAt
+  }, [approvedAt])
 
   // "Updated" dots on tabs touched by the latest revision until they are viewed.
   const latest = revisions[0]
   const revisionNumber = revisions.length
   const touched = (tab: SpecTab) =>
-    !!latest && seenRevision[tab] < revisionNumber && (latest.sections.includes('all') || latest.sections.includes(tab))
+    tab !== 'package' && !!latest && seenRevision[tab] < revisionNumber && (latest.sections.includes('all') || latest.sections.includes(tab))
   useEffect(() => {
     setSeenRevision(current => ({ ...current, [activeTab]: revisionNumber }))
   }, [activeTab, revisionNumber])
 
-  // Scroll the document back to the top when switching tabs.
   useEffect(() => { panelEl?.scrollTo({ top: 0 }) }, [activeTab, panelEl])
 
-  // Keyboard shortcuts: 1/2/3 switch tabs, R focuses the revision box.
+  // Keyboard shortcuts: 1–4 switch tabs.
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey || isTypingTarget(event.target) || confirmOpen) return
-      if (['1', '2', '3'].includes(event.key)) setActiveTab(TABS[Number(event.key) - 1].id)
-      else if ((event.key === 'r' || event.key === 'R') && !isLocked) { event.preventDefault(); feedbackRef.current?.focus() }
+      const index = Number(event.key) - 1
+      if (index >= 0 && index < TABS.length) setActiveTab(TABS[index].id)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [confirmOpen, isLocked])
+  }, [confirmOpen])
 
   const reviewedSet = new Set(reviewedTaskIds)
   const reviewedCount = spec.tasks.filter(task => task.completed || reviewedSet.has(task.id)).length
 
   const headings = useMemo(() => {
-    const source = activeTab === 'requirements' ? extractHeadings(spec.requirements, 'req')
-      : activeTab === 'design' ? extractHeadings(spec.design, 'des') : []
+    const source = activeTab === 'design' ? extractHeadings(spec.design, 'des') : []
     return source.filter(heading => heading.level > 1)
-  }, [activeTab, spec.requirements, spec.design])
+  }, [activeTab, spec.design])
 
   const onTabKey = (event: KeyboardEvent<HTMLButtonElement>) => {
     const index = TABS.findIndex(tab => tab.id === activeTab)
@@ -161,22 +153,7 @@ export default function SpecReviewer({
     tabRefs.current[TABS[next].id]?.focus()
   }
 
-  const toggleSection = (id: SpecSection) => {
-    setSections(current => {
-      if (id === 'all') return ['all']
-      const withoutAll = current.filter(section => section !== 'all')
-      const next = withoutAll.includes(id) ? withoutAll.filter(section => section !== id) : [...withoutAll, id]
-      return next.length ? next : ['all']
-    })
-  }
-
-  const submitRevision = async () => {
-    if (!feedback.trim() || busy || isLocked) return
-    const result = await onRevise(feedback.trim(), sections)
-    if (result) setFeedback('')
-  }
-
-  const confirmApproval = async () => {
+  const confirmSync = async () => {
     const result = await onApprove()
     if (!result) setConfirmOpen(false)
   }
@@ -190,12 +167,12 @@ export default function SpecReviewer({
   }
 
   return (
-    <div className={`sr-root${isLocked ? ' is-locked' : ''}`}>
+    <div className="sr-root">
       {/* ── Header ─────────────────────────────────────────────── */}
       <header className="sr-header fx-panel">
         <div className="sr-header-glow" aria-hidden="true" />
         <div className="sr-header-main">
-          <p className="fx-eyebrow"><Sparkles size={13} /> IBM Bob 2.0 · Spec Review Gate</p>
+          <p className="fx-eyebrow"><Sparkles size={13} /> IBM Bob 2.0 · Specs-driven development</p>
           <h1 className="sr-title">{templateName ? `${templateName} specification` : 'Specification review'}</h1>
           <div className="sr-meta">
             <button type="button" className="sr-chip-btn" onClick={copyFeatureId} title="Copy feature ID">
@@ -204,6 +181,7 @@ export default function SpecReviewer({
             </button>
             <span className="sr-meta-item"><ClipboardList size={13} /> {spec.tasks.length} tasks</span>
             <span className="sr-meta-item"><History size={13} /> {revisions.length} {revisions.length === 1 ? 'revision' : 'revisions'}</span>
+            {approvedAt && <span className="sr-meta-item sr-meta-item--ok"><Rocket size={13} /> Last synced {formatTime(approvedAt)}</span>}
           </div>
         </div>
         <div className="sr-header-side">
@@ -214,7 +192,7 @@ export default function SpecReviewer({
               <p className="sr-ring-label">reviewed</p>
             </div>
           </div>
-          <SpecStatusBadge status={spec.status} isLocked={isLocked} />
+          <SpecStatusBadge status={spec.status} />
         </div>
       </header>
 
@@ -256,18 +234,22 @@ export default function SpecReviewer({
                 <div className="sr-panel" role="tabpanel" id={`sr-panel-${activeTab}`} aria-labelledby={`sr-tab-${activeTab}`}
                   tabIndex={0} ref={setPanelEl}>
                   <div className="sr-panel-inner" key={`${activeTab}-${revisionNumber}`}>
-                    {activeTab === 'requirements' && <RequirementsTab requirements={spec.requirements} />}
+                    {activeTab === 'requirements' && (
+                      <RequirementsTab requirements={spec.requirements}
+                        onAddRequirement={newReq => { void onRevise(`Added requirement ${newReq.id}: ${newReq.title}`, ['all']) }} />
+                    )}
                     {activeTab === 'design' && <DesignTab design={spec.design} featureId={spec.feature_id} bindings={spec.ibm_bindings} />}
                     {activeTab === 'tasks' && (
-                      <TaskBreakdownTab tasks={spec.tasks} reviewedIds={reviewedTaskIds} isLocked={isLocked}
+                      <TaskBreakdownTab tasks={spec.tasks} reviewedIds={reviewedTaskIds}
                         onToggle={onToggleReviewed} onSetAll={onSetAllReviewed} />
                     )}
+                    {activeTab === 'package' && <PackageDocsTab />}
                   </div>
                 </div>
                 {revising && (
                   <div className="sr-panel-overlay" role="status">
                     <div className="sr-scan" aria-hidden="true" />
-                    <span className="sr-overlay-chip"><Wand2 size={15} /> <span className="fx-shimmer-text">IBM Bob is rewriting the spec…</span></span>
+                    <span className="sr-overlay-chip"><Wand2 size={15} /> <span className="fx-shimmer-text">IBM Bob is updating specs, design &amp; tasks…</span></span>
                   </div>
                 )}
               </div>
@@ -277,65 +259,30 @@ export default function SpecReviewer({
             <IBMToolBindingsPanel bindings={spec.ibm_bindings} />
           </section>
 
-          {/* ── Action dock ───────────────────────────────────── */}
-          {isLocked ? (
-            <section className="sr-locked fx-panel" aria-live="polite">
-              <div className="sr-locked-seal" aria-hidden="true"><Lock size={20} /></div>
-              <div className="sr-locked-body">
-                <p className="sr-locked-title">Approved &amp; locked <span aria-hidden="true">🔒</span></p>
-                <p className="sr-locked-text">
-                  Signed off{approvedAt ? ` ${formatTime(approvedAt)}` : ''}. The spec is read-only and IBM Bob’s deployment
-                  pipeline is unlocked.
+          {/* ── Action bar ────────────────────────────────────── */}
+          <section className={`sr-dock sr-dock--sync fx-panel${synced ? ' is-synced' : ''}`} aria-label="Sync and deploy">
+            <div className="sr-dock-info">
+              <span className="sr-dock-icon" aria-hidden="true">{synced ? <Rocket size={18} /> : <Sparkles size={18} />}</span>
+              <div>
+                <p className="sr-dock-title">{synced ? 'Specs live on IBM Cloud' : 'Ready when your specs are'}</p>
+                <p className="sr-dock-text">
+                  {synced
+                    ? <>Last synced {formatTime(approvedAt!)}. Keep refining: add requirements and IBM Bob re-syncs design and tasks.</>
+                    : <>Add requirements from the Requirements tab; IBM Bob keeps design and tasks in sync. Deploy whenever you’re ready.</>}
                 </p>
               </div>
-              {onContinue && (
-                <button type="button" className="fx-btn fx-btn--primary fx-btn--lg" onClick={onContinue}>
-                  Continue to QA pipeline <ArrowRight size={16} />
+            </div>
+            <div className="sr-dock-buttons">
+              {synced && onContinue && (
+                <button type="button" className="fx-btn fx-btn--secondary" onClick={onContinue}>
+                  QA pipeline <ArrowRight size={15} />
                 </button>
               )}
-            </section>
-          ) : (
-            <section className="sr-dock fx-panel" aria-label="Review actions">
-              <div className={`sr-composer${feedback ? ' has-value' : ''}`}>
-                <label htmlFor={feedbackId} className="sr-composer-label">
-                  <MessageSquareText size={14} /> Request revisions
-                  <span className="sr-composer-hint"><kbd className="fx-kbd">R</kbd> to focus</span>
-                </label>
-                <textarea id={feedbackId} ref={feedbackRef} className="sr-textarea" rows={2} maxLength={MAX_FEEDBACK}
-                  placeholder="Describe what to change — e.g. use PostgreSQL instead of MongoDB, add admin audit logs…"
-                  value={feedback} disabled={busy} onChange={event => setFeedback(event.target.value)}
-                  onKeyDown={event => {
-                    if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); void submitRevision() }
-                    if (event.key === 'Escape') (event.target as HTMLTextAreaElement).blur()
-                  }} />
-                <div className="sr-composer-row">
-                  <div className="sr-chips" role="group" aria-label="Sections to revise">
-                    {SECTION_OPTIONS.map(option => (
-                      <button key={option.id} type="button" disabled={busy}
-                        className={`sr-chip${sections.includes(option.id) ? ' is-on' : ''}`}
-                        aria-pressed={sections.includes(option.id)} onClick={() => toggleSection(option.id)}>
-                        {sections.includes(option.id) && <Check size={11} strokeWidth={3} />}
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                  <span className="sr-counter">{feedback.length}/{MAX_FEEDBACK}</span>
-                </div>
-              </div>
-
-              <div className="sr-dock-actions">
-                <button type="button" className="fx-btn fx-btn--secondary" disabled={!feedback.trim() || busy}
-                  onClick={() => void submitRevision()}>
-                  {revising ? <Loader2 size={15} className="fx-spin" /> : <Wand2 size={15} />}
-                  {revising ? 'Revising…' : 'Request changes'}
-                  {!revising && <span className="sr-btn-kbd" aria-hidden="true"><kbd className="fx-kbd">Ctrl</kbd><kbd className="fx-kbd"><CornerDownLeft size={10} /></kbd></span>}
-                </button>
-                <button type="button" className="fx-btn fx-btn--primary sr-approve" disabled={busy} onClick={() => setConfirmOpen(true)}>
-                  <CheckCircle2 size={16} /> Approve specs &amp; deploy to IBM Cloud
-                </button>
-              </div>
-            </section>
-          )}
+              <button type="button" className="fx-btn fx-btn--primary sr-approve" disabled={busy} onClick={() => setConfirmOpen(true)}>
+                <Rocket size={16} /> {synced ? 'Re-sync & deploy' : 'Sync specs & deploy to IBM Cloud'}
+              </button>
+            </div>
+          </section>
         </div>
 
         {/* ── Summary aside ───────────────────────────────────── */}
@@ -354,7 +301,7 @@ export default function SpecReviewer({
                 { done: reviewedCount === spec.tasks.length && spec.tasks.length > 0, label: 'Tasks reviewed', value: `${reviewedCount}/${spec.tasks.length}` },
                 { done: spec.ibm_bindings.secrets_vault, label: 'Secrets vault bound' },
                 { done: Object.values(spec.ibm_bindings).every(Boolean), label: 'IBM tools bound', value: `${Object.values(spec.ibm_bindings).filter(Boolean).length}/4` },
-                { done: isLocked, label: 'Human sign-off' },
+                { done: synced, label: 'Synced & deployed' },
               ].map(item => (
                 <li key={item.label} className={item.done ? 'is-done' : ''}>
                   <span className="sr-check-dot">{item.done && <Check size={10} strokeWidth={3.5} />}</span>
@@ -399,8 +346,8 @@ export default function SpecReviewer({
         </aside>
       </div>
 
-      <ApprovalDialog open={confirmOpen && !isLocked} approving={approving} reviewed={reviewedCount} total={spec.tasks.length}
-        revisions={revisions.length} onCancel={() => setConfirmOpen(false)} onConfirm={() => void confirmApproval()} />
+      <ApprovalDialog open={confirmOpen} approving={syncing} reviewed={reviewedCount} total={spec.tasks.length}
+        revisions={revisions.length} resync={synced} onCancel={() => setConfirmOpen(false)} onConfirm={() => void confirmSync()} />
 
       {celebrate && (
         <div className="sr-celebrate" role="status" aria-live="assertive">
@@ -410,8 +357,8 @@ export default function SpecReviewer({
           <div className="sr-celebrate-seal">
             <svg viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24" /><path d="M15 27l7 7 15-16" /></svg>
           </div>
-          <p className="sr-celebrate-title">Spec approved &amp; locked</p>
-          <p className="sr-celebrate-sub">Deployment pipeline unlocked</p>
+          <p className="sr-celebrate-title">Specs synced &amp; deploying</p>
+          <p className="sr-celebrate-sub">IBM Bob’s subagents are rolling out your update</p>
         </div>
       )}
     </div>

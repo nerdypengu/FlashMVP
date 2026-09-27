@@ -1,150 +1,132 @@
 /**
- * BL-ARC-01 — Starter Template Selector (first screen of the delivery flow).
- * The developer picks an IBM-ready template (with an embedded flashmvp.json)
- * and describes the app; IBM Bob's manifest parser turns that into an SDD spec.
+ * BL-ARC-01 — Project starter template (shown inside Project Details).
+ * Displays the IBM-ready starter chosen at project creation (with its embedded
+ * flashmvp.json topology), the GitHub starter repository, and the creation
+ * manifest prompt that IBM Bob parses into the 3-part SDD spec.
  */
-import { useRef, useState, type KeyboardEvent } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Boxes, Cloud, History, Lock, ShieldCheck, Sparkles, Zap } from 'lucide-react'
-import TemplateCard from './TemplateCard'
-import WorkflowStepper from './WorkflowStepper'
+import { Atom, Database, Hexagon, KeyRound, Server, ShieldCheck, Timer, type LucideIcon } from 'lucide-react'
+import ArchitecturePreview from './ArchitecturePreview'
 import PromptComposer from './PromptComposer'
-import { MIN_PROMPT_LENGTH, findTemplate, templates, type StarterTemplate } from '../../data/templates'
+import GitHubStarter from './GitHubStarter'
+import { MAX_PROMPT_LENGTH, MIN_PROMPT_LENGTH, findTemplate, type IBMBindingName, type StarterTemplate } from '../../data/templates'
 import { useSpecSession } from '../../context/SpecSessionContext'
+import { useSpotlight } from '../../hooks/useSpotlight'
 import '../../styles/flash-ui.css'
 import './TemplateSelectorPage.css'
 
-const METRICS = [
-  { icon: Zap, value: '< 90s', label: 'prompt to live URL' },
-  { icon: Cloud, value: '4', label: 'IBM services pre-wired' },
-  { icon: ShieldCheck, value: '100%', label: 'human-approved deploys' },
-]
+const MOCKED_PROJECT_PROMPT =
+  'Deploy a high-performance React 19 frontend with Python FastAPI backend microservices, Supabase PostgreSQL schema, and watsonx QA automated testing.'
+
+const ICONS: Record<string, LucideIcon> = { Atom, Hexagon }
+const BINDING_ICONS: Record<IBMBindingName, LucideIcon> = {
+  'IBM Code Engine': Server,
+  'IBM Cloud DB': Database,
+  'IBM Secrets Manager': KeyRound,
+  'Watsonx QA': ShieldCheck,
+}
 
 export default function TemplateSelectorPage({ onGenerate }: {
-  /** Optional hook for parents that want to observe the selection. */
   onGenerate?: (template: StarterTemplate, prompt: string) => void
 }) {
   const navigate = useNavigate()
-  const { session, isLocked, startSession } = useSpecSession()
-  const [selectedId, setSelectedId] = useState(session?.templateId ?? templates[0].id)
-  const [prompt, setPrompt] = useState('')
-  const [touched, setTouched] = useState(false)
-  const [launching, setLaunching] = useState(false)
+  const { session, startSession } = useSpecSession()
+  const onPointerMove = useSpotlight<HTMLElement>()
   const promptRef = useRef<HTMLTextAreaElement>(null)
-  const gridRef = useRef<HTMLDivElement>(null)
 
-  const selected = findTemplate(selectedId)
+  const selected = findTemplate(new URLSearchParams(window.location.search).get('github_template') ?? session?.templateId ?? 'react-fastapi')
+  const [prompt, setPrompt] = useState(session?.prompt || MOCKED_PROJECT_PROMPT)
+  const [touched, setTouched] = useState(false)
   const trimmed = prompt.trim()
-  const promptValid = trimmed.length >= MIN_PROMPT_LENGTH
-  const showError = touched && !promptValid
+  const valid = trimmed.length >= MIN_PROMPT_LENGTH && trimmed.length <= MAX_PROMPT_LENGTH
+  const Icon = ICONS[selected.icon] ?? Atom
 
-  const start = (template: StarterTemplate, text: string) => {
-    if (launching) return
-    setLaunching(true)
-    startSession(template.id, text)
-    onGenerate?.(template, text)
-    // Let the launch animation play before the route change.
-    setTimeout(() => navigate('/specs', { state: { templateId: template.id, prompt: text } }), 260)
-  }
-
-  const submit = () => {
+  const proceedToSpec = () => {
     setTouched(true)
-    if (!promptValid) { promptRef.current?.focus(); return }
-    start(selected, trimmed)
-  }
-
-  /** "Select →" on a card starts immediately — using the typed prompt, or the template's own brief. */
-  const startWithTemplate = (template: StarterTemplate) => {
-    setSelectedId(template.id)
-    start(template, promptValid ? trimmed : `${template.tagline}. ${template.description}`)
-  }
-
-  // Roving arrow-key navigation across the radio group.
-  const onGridKey = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (!['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(event.key)) return
-    event.preventDefault()
-    const index = templates.findIndex(template => template.id === selectedId)
-    const delta = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1
-    const next = templates[(index + delta + templates.length) % templates.length]
-    setSelectedId(next.id)
-    requestAnimationFrame(() => gridRef.current?.querySelector<HTMLElement>('[aria-checked="true"]')?.focus())
+    if (!valid) { promptRef.current?.focus(); return }
+    if (!session?.spec || session.templateId !== selected.id || session.prompt !== trimmed) {
+      startSession(selected.id, trimmed)
+    }
+    onGenerate?.(selected, trimmed)
+    navigate('/specs', { state: { templateId: selected.id, prompt: trimmed } })
   }
 
   return (
-    <div className={`ts-root${launching ? ' is-launching' : ''}`}>
-      {/* ── Hero ─────────────────────────────────────────────── */}
-      <section className="ts-hero">
-        <div className="ts-aurora" aria-hidden="true"><span /><span /><span /></div>
-        <div className="ts-gridlines" aria-hidden="true" />
-        <div className="ts-hero-inner">
-          <span className="ts-pill fx-enter">
-            <span className="fx-dot-live" aria-hidden="true" />
-            Powered by IBM Bob 2.0
-            <span className="ts-pill-sep" aria-hidden="true" />
-            <span className="ts-pill-muted">Specs-driven delivery</span>
-          </span>
-          <h1 className="ts-title fx-enter" style={{ animationDelay: '60ms' }}>
-            Ship to IBM Cloud<br /><span className="fx-gradient-text">from a single sentence.</span>
-          </h1>
-          <p className="ts-sub fx-enter" style={{ animationDelay: '120ms' }}>
-            Pick a production-ready foundation, describe your product, and IBM Bob drafts the requirements, architecture and
-            task plan. Nothing deploys until you sign off. No DevOps required.
-          </p>
-          <ul className="ts-metrics fx-enter" style={{ animationDelay: '180ms' }}>
-            {METRICS.map(({ icon: Icon, value, label }) => (
-              <li key={label}><Icon size={15} aria-hidden="true" /><strong>{value}</strong><span>{label}</span></li>
-            ))}
+    <div className="ts-root ts-root--project">
+      {/* ── Selected starter ─────────────────────────────────── */}
+      <article className="tc-card tc-card--wide is-selected fx-beam fx-spotlight"
+        style={{ '--tc-accent': selected.accent, '--fx-beam-color': selected.accent } as CSSProperties}
+        onPointerMove={onPointerMove} aria-label={`Selected starter template: ${selected.name}`}>
+        <header className="tc-head">
+          <span className="tc-icon" aria-hidden="true"><Icon size={20} /></span>
+          <div className="tc-titles">
+            <div className="tc-title-row">
+              <h3 className="tc-title">{selected.name}</h3>
+              <span className="tc-badge tc-badge--inline">Selected starter</span>
+            </div>
+            <p className="tc-tagline">{selected.tagline}</p>
+          </div>
+          <span className="tc-meta tc-meta--pill"><Timer size={13} aria-hidden="true" /> Deploys in {selected.estimatedDeploy.replace('~', '≈ ')}</span>
+        </header>
+
+        <div className="tc-wide-body">
+          <div className="tc-preview">
+            <ArchitecturePreview template={selected} active />
+          </div>
+
+          <div className="tc-wide-side">
+            <p className="tc-desc">{selected.description}</p>
+
+            <div>
+              <p className="tc-label">Tech stack</p>
+              <ul className="tc-stack" aria-label="Stack">
+                {selected.stack.map(item => <li key={item}>{item}</li>)}
+              </ul>
+            </div>
+
+            <div>
+              <p className="tc-label">Container fleet</p>
+              <ul className="tc-services">
+                {selected.services.map(service => (
+                  <li key={service.name}>
+                    <span className="tc-service-dot" aria-hidden="true" />
+                    <span className="tc-service-name">{service.name}</span>
+                    <span className="tc-service-runtime">{service.runtime}</span>
+                    <code>:{service.port}</code>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p className="tc-label">IBM Bob 2.0 cloud bindings</p>
+          <ul className="tc-bindings tc-bindings--4" aria-label="IBM tool bindings">
+            {selected.ibm_bindings.map(binding => {
+              const BindingIcon = BINDING_ICONS[binding]
+              return <li key={binding}><BindingIcon size={13} aria-hidden="true" /><span>{binding}</span></li>
+            })}
           </ul>
         </div>
-      </section>
+      </article>
 
-      <WorkflowStepper current={0} />
+      <GitHubStarter templateId={selected.id} />
 
-      {session?.spec && (
-        <div className="ts-resume fx-panel fx-enter" role="note">
-          <span className="ts-resume-icon">{isLocked ? <Lock size={15} /> : <History size={15} />}</span>
-          <p>
-            Your <strong>{findTemplate(session.templateId).name}</strong> spec is {isLocked ? 'approved and locked' : 'waiting for review'}.
-            <span> Starting a new one replaces it.</span>
-          </p>
-          <button type="button" className="fx-btn fx-btn--secondary fx-btn--sm" onClick={() => navigate('/specs')}>
-            {isLocked ? 'View spec' : 'Resume review'} <ArrowRight size={14} />
-          </button>
-        </div>
-      )}
-
-      {/* ── Step 1 · Foundation ─────────────────────────────── */}
-      <section aria-labelledby="ts-step1" className="ts-section">
+      {/* ── Creation manifest ────────────────────────────────── */}
+      <section className="ts-section" aria-labelledby="ts-manifest">
         <header className="ts-section-head">
-          <span className="ts-step-num" aria-hidden="true">01</span>
+          <span className="ts-step-num" aria-hidden="true">✦</span>
           <div>
-            <h2 id="ts-step1" className="ts-section-title">Choose a foundation</h2>
-            <p className="ts-section-sub">
-              Every starter ships with a <code>flashmvp.json</code> manifest that binds it to IBM Cloud services.
-            </p>
+            <h2 id="ts-manifest" className="ts-section-title">Initial project specification</h2>
+            <p className="ts-section-sub">IBM Bob’s subagents parse this creation manifest into a 3-part SDD spec.</p>
           </div>
-          <span className="ts-section-aside"><Boxes size={14} /> {templates.length} templates</span>
+          <span className="ts-section-aside">{session ? 'Creation manifest' : 'Editable until first spec'}</span>
         </header>
-        <div className="ts-grid" role="radiogroup" aria-labelledby="ts-step1" ref={gridRef} onKeyDown={onGridKey}>
-          {templates.map((template, index) => (
-            <TemplateCard key={template.id} template={template} index={index} selected={template.id === selectedId}
-              onSelect={() => setSelectedId(template.id)} onUse={() => startWithTemplate(template)} />
-          ))}
-        </div>
-      </section>
-
-      {/* ── Step 2 · Brief ──────────────────────────────────── */}
-      <section aria-labelledby="ts-step2" className="ts-section">
-        <header className="ts-section-head">
-          <span className="ts-step-num" aria-hidden="true">02</span>
-          <div>
-            <h2 id="ts-step2" className="ts-section-title">Describe your product</h2>
-            <p className="ts-section-sub">Plain language is perfect. Mention users, key flows and integrations.</p>
-          </div>
-          <span className="ts-section-aside"><Sparkles size={14} /> IBM Bob drafts the spec</span>
-        </header>
-        <PromptComposer ref={promptRef} value={prompt} onChange={value => { setPrompt(value); if (touched && value.trim().length >= MIN_PROMPT_LENGTH) setTouched(false) }}
-          onSubmit={submit} template={selected} showError={showError} />
+        <PromptComposer ref={promptRef} value={prompt} onChange={value => { setPrompt(value); setTouched(false) }}
+          onSubmit={proceedToSpec} template={selected} showError={touched && !valid}
+          readOnly={!!session} suggestions={!session} submitLabel={session?.spec ? 'Review spec' : 'Generate spec'} />
       </section>
     </div>
   )

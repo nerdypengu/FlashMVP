@@ -1,9 +1,9 @@
 /**
  * FlashMVP — Login Page
  *
- * Single page that handles both Sign In and Sign Up via tab toggle.
- * Uses Supabase Auth through the AuthContext — no direct Supabase calls here.
- * Matches the existing dark glassmorphism design system (index.css tokens).
+ * Single page that handles Sign In, Sign Up, and GitHub OAuth login.
+ * Uses Supabase Auth through the AuthContext.
+ * Matches the existing dark glassmorphism design system.
  */
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -12,8 +12,17 @@ import { useAuth } from '../../context/AuthContext'
 
 type Mode = 'signin' | 'signup'
 
+function GithubIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+      <path d="M9 18c-4.51 2-5-2-7-2" />
+    </svg>
+  )
+}
+
 export default function LoginPage() {
-  const { signIn, signUp } = useAuth()
+  const { signIn, signUp, signInWithGithub } = useAuth()
   const navigate = useNavigate()
 
   const [mode, setMode]         = useState<Mode>('signin')
@@ -43,13 +52,31 @@ export default function LoginPage() {
       if (mode === 'signin') {
         const { error: err } = await signIn(email, password)
         if (err) { setError(err); return }
-        navigate('/')
+        navigate('/dashboard')
       } else {
         const { error: err } = await signUp(email, password)
         if (err) { setError(err); return }
         setInfo('Account created! Check your email to confirm, then sign in.')
         setMode('signin')
       }
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleGithubLogin = async () => {
+    setError(null)
+    setInfo(null)
+    setBusy(true)
+    try {
+      const { error: err } = await signInWithGithub()
+      if (err) {
+        setError(err)
+        return
+      }
+      navigate('/dashboard')
+    } catch {
+      setError('Failed to connect to GitHub OAuth.')
     } finally {
       setBusy(false)
     }
@@ -214,6 +241,46 @@ export default function LoginPage() {
           </button>
         </form>
 
+        {/* Divider */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          margin: '20px 0 16px 0',
+          gap: 12
+        }}>
+          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.12)' }} />
+          <span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            or continue with
+          </span>
+          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.12)' }} />
+        </div>
+
+        {/* GitHub OAuth Login Button */}
+        <button
+          type="button"
+          onClick={handleGithubLogin}
+          disabled={busy}
+          style={{
+            width: '100%',
+            padding: '11px 0',
+            borderRadius: 10,
+            border: '1px solid rgba(255,255,255,0.18)',
+            background: 'rgba(255,255,255,0.07)',
+            color: '#fff',
+            fontWeight: 600,
+            fontSize: 13,
+            cursor: busy ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <GithubIcon size={18} />
+          <span>Connect with GitHub</span>
+        </button>
+
         {/* Demo mode hint */}
         {import.meta.env.VITE_DEMO_MODE === 'true' && (
           <div style={{
@@ -223,8 +290,8 @@ export default function LoginPage() {
             borderRadius: 8, fontSize: 11, color: 'rgba(255,255,255,0.5)',
             textAlign: 'center', lineHeight: 1.6,
           }}>
-            <strong style={{ color: 'rgba(15,98,254,0.9)' }}>DEMO MODE</strong>
-            {' '}— any email &amp; password will sign you in as admin.
+            <strong style={{ color: 'rgba(15,98,254,0.9)' }}>DEMO MODE ACTIVE</strong>
+            {' '}— Sign in with email or click <strong>Connect with GitHub</strong> to access the workspace.
           </div>
         )}
       </div>

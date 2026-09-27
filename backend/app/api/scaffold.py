@@ -3,11 +3,13 @@ BL-ARC-01 + BL-ARC-02 API Routes
 POST /api/v1/projects/scaffold          — scaffold a new project from a starter template
 POST /api/v1/projects/{id}/parse-manifest — parse the project's flashmvp.json manifest
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from fastapi.security import HTTPAuthorizationCredentials
 
 from app.schemas.manifest import ParsedManifest
 from app.schemas.project import ScaffoldRequest, ScaffoldResponse, IBMBinding
 from app.services import manifest_parser, template_service
+from app.services.person2_store import bearer, get_project, user_token
 
 router = APIRouter(prefix="/api/v1/projects", tags=["Expandable Architecture"])
 
@@ -34,10 +36,12 @@ async def scaffold_project(body: ScaffoldRequest) -> ScaffoldResponse:
 
 
 @router.post("/{project_id}/parse-manifest", response_model=ParsedManifest)
-async def parse_project_manifest(project_id: str) -> ParsedManifest:
+async def parse_project_manifest(project_id: str, credentials: HTTPAuthorizationCredentials | None = Depends(bearer)) -> ParsedManifest:
     """
     BL-ARC-02: Parse the flashmvp.json manifest for a scaffolded project.
     Extracts IBM service bindings, service definitions, and QA pipeline steps.
     Returns VALID manifest or INVALID with error message.
     """
+    if not manifest_parser.DEMO_MODE:
+        project_id = (await get_project(project_id, user_token(credentials)))["project_id"]
     return manifest_parser.parse_manifest(project_id)

@@ -21,7 +21,7 @@ import './SpecReviewer.css'
 export default function SpecReviewPage({ onApproved }: { onApproved?: () => void }) {
   const navigate = useNavigate()
   const toast = useToast()
-  const { session, isLocked, toggleReviewed, setAllReviewed, resetSession } = useSpecSession()
+  const { session, toggleReviewed, setAllReviewed, resetSession } = useSpecSession()
   const { generate, revise, approve, cancel, pending, error, clearError } = useSpecActions()
   const [secretsOpen, setSecretsOpen] = useState(false)
   const needsSpec = !!session && !session.spec
@@ -33,14 +33,14 @@ export default function SpecReviewPage({ onApproved }: { onApproved?: () => void
   const startOver = () => {
     cancel()
     resetSession()
-    navigate('/starter')
+    navigate('/project/proj-001')
   }
 
   const handleRevise = async (feedback: string, sections: SpecSection[]) => {
     const result = await revise(feedback, sections)
     if (result) {
       const scope = sections.includes('all') ? 'all sections' : sections.join(', ')
-      toast.success('Spec revised', `IBM Bob updated ${scope}. Updated tabs are marked with a dot.`)
+      toast.success('Specs updated', `IBM Bob re-synced ${scope}. Updated tabs are marked with a dot.`)
     }
     return result
   }
@@ -48,7 +48,7 @@ export default function SpecReviewPage({ onApproved }: { onApproved?: () => void
   const handleApprove = async () => {
     const ok = await approve()
     if (ok) {
-      toast.success('Spec approved & locked', 'The QA pipeline is now unlocked.')
+      toast.success('Specs synced & deploying', 'IBM Bob is rolling out your update. Specs stay editable.')
       onApproved?.()
     }
     return ok
@@ -61,7 +61,7 @@ export default function SpecReviewPage({ onApproved }: { onApproved?: () => void
         <div className="sr-topbar-actions">
           {isDemoMode && <span className="sr-demo-pill" title="VITE_DEMO_MODE=true — responses are simulated"><span className="sr-demo-dot" />Demo mode</span>}
           <button type="button" className="fx-btn fx-btn--ghost fx-btn--sm" onClick={startOver} disabled={pending === 'approve'}>
-            <FilePlus2 size={14} /> New spec
+            <FilePlus2 size={14} /> Start over
           </button>
         </div>
       )}
@@ -79,9 +79,9 @@ export default function SpecReviewPage({ onApproved }: { onApproved?: () => void
             <span className="sr-empty-card sr-empty-card--3"><Sparkles size={18} /></span>
           </div>
           <h2>No spec is waiting for review</h2>
-          <p>Pick an IBM-ready foundation and describe your product. IBM Bob 2.0 drafts requirements, a technical design and a task plan for you to approve.</p>
-          <button type="button" className="fx-btn fx-btn--primary fx-btn--lg" onClick={() => navigate('/starter')}>
-            <Layers size={16} /> Choose a foundation
+          <p>Open your project’s starter template and generate a spec. IBM Bob 2.0 drafts requirements, a technical design and a task plan for you to review.</p>
+          <button type="button" className="fx-btn fx-btn--primary fx-btn--lg" onClick={() => navigate('/project/proj-001')}>
+            <Layers size={16} /> View starter template in Project Details
           </button>
         </div>
       </div>
@@ -117,11 +117,10 @@ export default function SpecReviewPage({ onApproved }: { onApproved?: () => void
 
   return (
     <div className="sr-page">
-      {topbar(isLocked ? 2 : 1)}
+      {topbar(session.approvedAt ? 2 : 1)}
 
       <SpecReviewer
         spec={session.spec}
-        isLocked={isLocked}
         pending={pending}
         error={error && error.action !== 'generate' ? error.message : null}
         onDismissError={clearError}

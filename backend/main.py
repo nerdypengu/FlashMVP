@@ -12,6 +12,7 @@ from app.api.secrets import router as secrets_router
 from app.api.scaffold import router as scaffold_router
 from app.api.containers import router as containers_router
 from app.api.hub import router as hub_router
+from app.api.github import router as github_router
 
 app = FastAPI(
     title="FlashMVP API",
@@ -21,7 +22,10 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=list(dict.fromkeys([
+        os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/"),
+        *[origin.strip() for origin in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",") if origin.strip()],
+    ])),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -34,6 +38,7 @@ app.include_router(secrets_router)
 app.include_router(scaffold_router)
 app.include_router(containers_router)
 app.include_router(hub_router)
+app.include_router(github_router)
 
 
 @app.get("/")

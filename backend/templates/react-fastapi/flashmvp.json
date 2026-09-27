@@ -12,8 +12,8 @@
     { "name": "backend",  "dockerfile": "Dockerfile.backend",  "port": 8000 }
   ],
   "qa_pipeline": [
-    { "id": "lint",     "name": "ESLint",                    "command": "npm run lint" },
-    { "id": "test",     "name": "Pytest",                    "command": "pytest" },
-    { "id": "security", "name": "IBM Watsonx Security Scan", "command": "bob skill watsonx-qa --scan" }
+    { "stage": "Unit Tests", "files": ["backend/tests/test_*.py"] },
+    { "stage": "Integration Tests", "files": ["backend/tests/integration/test_*.py"] },
+    { "stage": "E2E Tests", "files": ["frontend/e2e/*.spec.ts"] }
   ]
 }

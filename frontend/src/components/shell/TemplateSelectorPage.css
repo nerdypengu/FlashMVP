@@ -326,3 +326,31 @@
   .ap-packet { display: none; }
   .ts-root, .tc-card, .tc-card:hover { transition: none; transform: none; }
 }
+
+/* ── Project-details variant (single selected starter) ─────────── */
+.ts-root--project { gap: 22px; }
+.tc-card--wide { cursor: default; gap: 18px; padding: 22px; }
+.tc-card--wide:hover { transform: none; }
+.tc-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tc-badge--inline { position: static; }
+.tc-meta--pill { padding: 6px 11px; border-radius: 999px; border: 1px solid var(--fx-line); background: rgba(255, 255, 255, 0.03); white-space: nowrap; }
+.tc-wide-body { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 20px; align-items: stretch; }
+.tc-wide-body .tc-preview { display: grid; place-items: center; padding: 18px 14px; }
+.tc-wide-body .ap-root { max-height: 190px; }
+.tc-wide-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.tc-label { margin-bottom: 8px; font-size: 11px; font-weight: 650; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fx-text-3); }
+.tc-services { display: flex; flex-direction: column; gap: 6px; list-style: none; }
+.tc-services li { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; font-size: 12.5px; border: 1px solid var(--fx-line); background: rgba(0, 0, 0, 0.28); }
+.tc-service-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tc-accent); box-shadow: 0 0 8px var(--tc-accent); }
+.tc-service-name { font-weight: 650; text-transform: capitalize; color: var(--fx-text-1); min-width: 70px; }
+.tc-service-runtime { flex: 1; color: var(--fx-text-3); }
+.tc-services code { font: 500 12px var(--fx-mono); color: var(--fx-blue-3); }
+.tc-bindings--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.pc-shell.is-readonly { background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03)); }
+.pc-shell.is-readonly .pc-input { color: #b8f0cf; font-family: var(--fx-mono); font-size: 14px; cursor: default; }
+.pc-shell.is-readonly .pc-meter { display: none; }
+
+@media (max-width: 980px) {
+  .tc-wide-body { grid-template-columns: 1fr; }
+  .tc-bindings--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

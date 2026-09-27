@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient'
 import type { Run } from '../components/qa/RunHistoryTable'
 
 export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true'
+export const API_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:8001').replace(/\/$/, '')
 export type Project = { id: string; project_id: string; app_name: string; db_schema: string | null }
 export type ServiceRecord = { service_type: string; container_id: string | null; url: string | null; port: number | null }
 
@@ -17,19 +18,29 @@ export async function loadProjects(): Promise<Project[]> {
 }
 
 export async function loadRuns(projectId: string): Promise<Run[]> {
+  if (DEMO_MODE) {
+    const response = await fetch(`${API_URL}/api/v1/projects/${encodeURIComponent(projectId)}/runs`)
+    if (!response.ok) throw new Error('Could not load project run history from the demo backend.')
+    return (await response.json()).map(runRecordToRun)
+  }
   const { data, error } = await database().from('run_history')
     .select('id,run_number,branch,status,duration_ms,triggered_at,qa_steps')
     .eq('project_id', projectId).order('triggered_at', { ascending: false })
   if (error) throw error
-  return (data ?? []).map(row => ({
+  return (data ?? []).map(runRecordToRun)
+}
+
+export function runRecordToRun(row: any): Run {
+  return {
     run_number: row.run_number, branch: row.branch ?? '—', status: row.status,
     duration_seconds: (row.duration_ms ?? 0) / 1000, timestamp: row.triggered_at,
-    step_results: (Array.isArray(row.qa_steps) ? row.qa_steps : []).map((step, index) => ({
-      id: step.id ?? `${row.id}-${index}`, name: step.step_name ?? step.name ?? 'Unnamed step',
+    step_results: (Array.isArray(row.qa_steps) ? row.qa_steps : []).map((step: any, index: number) => ({
+      id: step.id ?? `${row.id ?? row.run_id}-${index}`, stage: step.stage,
+      name: step.step_name ?? step.name ?? 'Unnamed step',
       status: step.status, duration: `${(step.duration_ms ?? 0) / 1000}s`,
       log_output: step.log_output ?? '',
     })),
-  }))
+  }
 }
 
 export async function loadServices(projectId: string): Promise<ServiceRecord[]> {

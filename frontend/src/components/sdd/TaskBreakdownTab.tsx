@@ -5,12 +5,12 @@ import type { SpecTask } from '../../types/spec'
 
 /**
  * BL-SDD-02 · Tab 3 — task checklist.
- * Task content is read-only; the reviewer can only tick tasks off as "reviewed".
+ * Task content is read-only; reviewers tick tasks off as "reviewed" at any time (continuous review).
  */
-export default function TaskBreakdownTab({ tasks, reviewedIds, isLocked, onToggle, onSetAll }: {
+export default function TaskBreakdownTab({ tasks, reviewedIds, onToggle, onSetAll }: {
   tasks: SpecTask[]
   reviewedIds: string[]
-  isLocked: boolean
+  isLocked?: boolean
   onToggle: (taskId: string) => void
   onSetAll: (reviewed: boolean) => void
 }) {
@@ -31,11 +31,9 @@ export default function TaskBreakdownTab({ tasks, reviewedIds, isLocked, onToggl
             <strong>{completedCount}/{total}</strong> tasks reviewed · tick each task once you agree with its scope.
           </p>
         </div>
-        {!isLocked && (
-          <button type="button" className="fx-btn fx-btn--secondary fx-btn--sm" onClick={() => onSetAll(!allDone)}>
-            {allDone ? <><RotateCcw size={13} /> Reset</> : <><CheckCheck size={14} /> Mark all reviewed</>}
-          </button>
-        )}
+        <button type="button" className="fx-btn fx-btn--secondary fx-btn--sm" onClick={() => onSetAll(!allDone)}>
+          {allDone ? <><RotateCcw size={13} /> Reset</> : <><CheckCheck size={14} /> Mark all reviewed</>}
+        </button>
         <div className="tb-progress" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={completedCount}
           aria-label="Tasks reviewed">
           <span className="tb-progress-fill" style={{ width: `${percent}%` }} data-complete={allDone || undefined} />
@@ -52,7 +50,7 @@ export default function TaskBreakdownTab({ tasks, reviewedIds, isLocked, onToggl
             <li key={task.id} className={`tb-task${done ? ' is-done' : ''}`} style={{ '--i': index } as CSSProperties}>
               <label className="tb-task-label">
                 <input type="checkbox" className="fx-sr-only" checked={done}
-                  disabled={isLocked || task.completed} onChange={() => onToggle(task.id)} />
+                  disabled={task.completed} onChange={() => onToggle(task.id)} />
                 <span className="tb-check" aria-hidden="true"><Check size={12} strokeWidth={3.2} /></span>
                 <span className="tb-index">{String(index + 1).padStart(2, '0')}</span>
                 <span className="tb-text"><InlineText text={task.description} /></span>
