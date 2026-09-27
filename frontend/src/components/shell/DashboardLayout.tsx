@@ -11,20 +11,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, role, signOut } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
   const isProjectView = location.pathname.startsWith('/project/') ||
-    ['/qa', '/history', '/playground', '/telemetry', '/env-config', '/specs', '/starter', '/skill-pack'].includes(location.pathname)
+    ['/qa', '/telemetry', '/env-config', '/specs'].includes(location.pathname)
   const items = [
     { path: `/project/${projectId || 'proj_8f92a'}/details`, label: 'Project Details', icon: FileText },
     { path: `/project/${projectId || 'proj_8f92a'}/telemetry`, label: 'Telemetry & Stats', icon: Radio },
-    { path: '/telemetry', label: 'Container Telemetry', icon: Radio },
     { path: '/qa', label: 'QA Canvas', icon: FlaskConical },
-    { path: '/history', label: 'Run History', icon: History },
-    { path: '/playground', label: 'Playground', icon: Monitor },
     { path: '/specs', label: 'Specs Review', icon: BookOpen },
-    { path: '/starter', label: 'Starter', icon: Layers },
-    { path: '/skill-pack', label: 'Skill Pack', icon: Boxes },
-    { path: '/hub', label: 'xAppHub', icon: Boxes },
     { path: '/env-config', label: 'Environment Config', icon: ShieldCheck },
   ]
+
 
   return <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', position: 'relative' }}>
     <BinaryCanvasBackground />

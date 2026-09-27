@@ -2,17 +2,14 @@ import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Zap } from 'lucide-react'
 import QACanvas from './components/qa/QACanvas'
-import RunHistoryTable, { type Run } from './components/qa/RunHistoryTable'
-import PlaygroundWindow from './components/playground/PlaygroundWindow'
+import { type Run } from './components/qa/RunHistoryTable'
 import TelemetryCharts from './components/telemetry/TelemetryCharts'
 import TemplateSelectorPage from './components/shell/TemplateSelectorPage'
 import SpecReviewPage from './components/sdd/SpecReviewPage'
-import AppCatalog from './components/portal/AppCatalog'
 import ProjectsDashboard from './components/dashboard/ProjectsDashboard'
 import ProjectDetailsPage from './components/dashboard/ProjectDetailsPage'
 import ProjectDetailsTelemetry from './components/dashboard/ProjectDetailsTelemetry'
 import EnvironmentConfigPage from './components/config/EnvironmentConfigPage'
-import SkillPackageInspector from './components/sdd/SkillPackageInspector'
 import LandingHomePage from './components/home/LandingHomePage'
 import LoginPage from './components/auth/LoginPage'
 import RequireAuth from './components/auth/RequireAuth'
@@ -38,7 +35,7 @@ export default function App() {
   const [dataError, setDataError] = useState('')
   const [reload, setReload] = useState(0)
   const project = projects.find(item => item.id === projectId)
-  const projectPage = ['/qa', '/history', '/playground', '/telemetry'].includes(location.pathname)
+  const projectPage = ['/qa', '/telemetry'].includes(location.pathname)
 
   useEffect(() => {
     if (DEMO_MODE) return
@@ -82,14 +79,18 @@ export default function App() {
   const card = (content: React.ReactNode) => dashboard(<div className="workspace-card glass-card page-enter">{content}</div>)
 
   return <Routes>
-    <Route path="/" element={user ? <Navigate to="/dashboard" replace /> :
+    <Route path="/" element={
       <div className="app-shell"><BinaryCanvasBackground /><div className="page">
         <header className="header">
           <button type="button" className="logo-btn" onClick={() => navigate('/')} title="FlashMVP — Home">
             <img src="/assets/logo.webp" alt="FlashMVP" width="52" height="52" />
           </button>
           <nav className="nav-pill" aria-label="Main Navigation"><button type="button" className="nav-link active">Home</button></nav>
-          <button type="button" className="sign-in-btn" onClick={() => navigate('/login')}><Zap size={14} /> Sign In</button>
+          {user ? (
+            <button type="button" className="sign-in-btn" onClick={() => navigate('/dashboard')}><Zap size={14} /> Go to Dashboard</button>
+          ) : (
+            <button type="button" className="sign-in-btn" onClick={() => navigate('/login')}><Zap size={14} /> Sign In</button>
+          )}
         </header>
         <main className="hero-workspace"><LandingHomePage /></main>
       </div></div>} />
@@ -99,16 +100,13 @@ export default function App() {
     <Route path="/project/:projectId/telemetry" element={card(<ProjectTelemetry project={projects.find(item => item.project_id === location.pathname.split('/')[2])} />)} />
     <Route path="/project/:projectId" element={card(<ProjectDetailsPage />)} />
     <Route path="/env-config" element={card(<EnvironmentConfigPage />)} />
-    <Route path="/skill-pack" element={card(<SkillPackageInspector />)} />
-    <Route path="/starter" element={card(<TemplateSelectorPage />)} />
+    <Route path="/starter" element={<Navigate to="/project/proj-001" replace />} />
     <Route path="/specs" element={card(<SpecReviewPage />)} />
+
     <Route path="/qa" element={card(<QACanvas key={projectId} runs={runs}
       nextRunNumber={Math.max(0, ...runs.map(run => run.run_number)) + 1}
       onRunComplete={run => setRuns(previous => [run, ...previous])} />)} />
-    <Route path="/history" element={card(<RunHistoryTable runs={runs} />)} />
-    <Route path="/playground" element={card(<PlaygroundWindow key={projectId} project={project} />)} />
     <Route path="/telemetry" element={card(<div className="telemetry-layout"><TelemetryCharts key={projectId} project={project} /></div>)} />
-    <Route path="/hub" element={card(<AppCatalog onOpenPlayground={() => navigate('/playground')} />)} />
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>
 }

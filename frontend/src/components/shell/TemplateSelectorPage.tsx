@@ -1,120 +1,190 @@
 /**
- * BL-ARC-01 — Starter Template Selector (first screen of the delivery flow).
- * The developer picks an IBM-ready template (with an embedded flashmvp.json)
- * and describes the app; IBM Bob's manifest parser turns that into an SDD spec.
+ * BL-ARC-01 — Starter Template & Initial Architecture Configuration (Single Horizontal Display).
+ * Shows the pre-configured starter template and read-only prompt created during project initialization.
  */
-import { useId, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, History, Lock, Package, Sparkles, Zap } from 'lucide-react'
-import TemplateCard from './TemplateCard'
-import WorkflowStepper from './WorkflowStepper'
-import { MAX_PROMPT_LENGTH, MIN_PROMPT_LENGTH, QUICK_PROMPTS, findTemplate, templates, type StarterTemplate } from '../../data/templates'
+import { ArrowRight, Atom, CheckCircle2, Clock, Lock, Sparkles, Zap, Server, ShieldCheck, Database } from 'lucide-react'
+import { findTemplate, templates, type StarterTemplate } from '../../data/templates'
+
 import { useSpecSession } from '../../context/SpecSessionContext'
 import './TemplateSelectorPage.css'
 
+const MOCKED_PROJECT_PROMPT =
+  'Deploy a high-performance React 19 frontend with Python FastAPI backend microservices, Supabase PostgreSQL schema, and watsonx QA automated testing.'
+
 export default function TemplateSelectorPage({ onGenerate }: {
-  /** Optional hook for parents that want to observe the selection. */
   onGenerate?: (template: StarterTemplate, prompt: string) => void
 }) {
   const navigate = useNavigate()
   const { session, isLocked, startSession } = useSpecSession()
-  const [selectedId, setSelectedId] = useState(session?.templateId ?? templates[0].id)
-  const [prompt, setPrompt] = useState('')
-  const [touched, setTouched] = useState(false)
-  const promptRef = useRef<HTMLTextAreaElement>(null)
-  const promptId = useId()
-  const hintId = useId()
 
-  const selected = findTemplate(selectedId)
-  const trimmed = prompt.trim()
-  const promptValid = trimmed.length >= MIN_PROMPT_LENGTH
-  const showError = touched && !promptValid
+  // Selected starter template (defaults to React + FastAPI)
+  const selected = findTemplate(session?.templateId ?? 'react-fastapi')
 
-  const start = (template: StarterTemplate, text: string) => {
-    startSession(template.id, text)
-    onGenerate?.(template, text)
-    navigate('/specs', { state: { templateId: template.id, prompt: text } })
-  }
-
-  const submit = () => {
-    setTouched(true)
-    if (!promptValid) { promptRef.current?.focus(); return }
-    start(selected, trimmed)
-  }
-
-  /** "Select →" on a card starts immediately — using the typed prompt, or the template's own brief. */
-  const startWithTemplate = (template: StarterTemplate) => {
-    setSelectedId(template.id)
-    start(template, promptValid ? trimmed : `${template.tagline}. ${template.description}`)
+  const proceedToSpec = () => {
+    const promptText = session?.prompt || MOCKED_PROJECT_PROMPT
+    startSession(selected.id, promptText)
+    onGenerate?.(selected, promptText)
+    navigate('/specs', { state: { templateId: selected.id, prompt: promptText } })
   }
 
   return (
-    <div className="ts-root">
-      <section className="ts-hero">
-        <span className="ts-bob-banner"><Zap size={13} /> Powered by IBM Bob 2.0</span>
-        <h1 className="ts-hero-title">Deploy your app to IBM Cloud in one click</h1>
-        <p className="ts-hero-sub">No DevOps required. Pick a starter, describe what you want, and IBM Bob drafts a spec for you to approve before anything ships.</p>
+    <div className="ts-root" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+
+
+      {/* ── Horizontal Single Selected Starter Card ─────────────────── */}
+      <section style={{
+        background: 'rgba(15, 17, 26, 0.85)',
+        border: '1px solid rgba(15, 98, 254, 0.35)',
+        borderRadius: 16, padding: 24,
+        display: 'flex', flexDirection: 'column', gap: 20,
+        boxShadow: '0 8px 32px rgba(15, 98, 254, 0.12)',
+        backdropFilter: 'blur(20px)', position: 'relative'
+      }}>
+        {/* Header Row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: 12,
+              background: 'linear-gradient(135deg, #0F62FE, #0043CE)',
+              display: 'grid', placeItems: 'center', color: '#fff',
+              boxShadow: '0 0 20px rgba(15, 98, 254, 0.5)', flexShrink: 0
+            }}>
+              <Atom size={26} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <h2 style={{ fontSize: 20, fontWeight: 700, color: '#fff', margin: 0 }}>
+                  {selected.name}
+                </h2>
+                <span style={{
+                  fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
+                  background: 'rgba(15, 98, 254, 0.2)', border: '1px solid rgba(15, 98, 254, 0.4)',
+                  color: '#60A5FA', textTransform: 'uppercase'
+                }}>
+                  Selected Starter Template
+                </span>
+              </div>
+              <p style={{ fontSize: 13, color: '#A6C8FF', margin: '4px 0 0 0' }}>
+                {selected.tagline} — {selected.description}
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Clock size={14} color="#A7F3D0" /> Estimated Deploy: <strong style={{ color: '#fff' }}>{selected.estimatedDeploy}</strong>
+            </span>
+          </div>
+        </div>
+
+        {/* Horizontal Detail Columns */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: 16, paddingTop: 18,
+          borderTop: '1px solid rgba(255,255,255,0.08)'
+        }}>
+          {/* Tech Stack */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Configured Tech Stack
+            </span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {selected.stack.map(st => (
+                <span key={st} style={{
+                  padding: '4px 10px', borderRadius: 6, fontSize: 12, color: '#fff',
+                  background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)'
+                }}>
+                  {st}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Microservices */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Container Microservices Fleet
+            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {selected.services.map(svc => (
+                <div key={svc.name} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '6px 10px', borderRadius: 6, background: 'rgba(0,0,0,0.3)',
+                  fontSize: 12, border: '1px solid rgba(255,255,255,0.05)'
+                }}>
+                  <span style={{ fontWeight: 600, color: '#fff', textTransform: 'capitalize' }}>{svc.name}</span>
+                  <span style={{ color: 'rgba(255,255,255,0.5)' }}>{svc.runtime}</span>
+                  <code style={{ color: '#60A5FA', fontFamily: 'monospace' }}>:{svc.port}</code>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* IBM Cloud Bindings */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              IBM Bob 2.0 Cloud Bindings
+            </span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+              {selected.ibm_bindings.map(b => (
+                <div key={b} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#fff' }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#42BE65', boxShadow: '0 0 6px #42BE65' }} />
+                  <span>{b}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </section>
 
-      <WorkflowStepper current={0} />
-
-      {session?.spec && (
-        <div className="ts-resume" role="note">
-          {isLocked ? <Lock size={16} /> : <History size={16} />}
-          <p>
-            You have a <strong>{findTemplate(session.templateId).name}</strong> spec {isLocked ? 'approved and locked' : 'waiting for review'}.
-            Starting a new one will replace it.
-          </p>
-          <button type="button" className="ts-btn ts-btn--ghost" onClick={() => navigate('/specs')}>
-            {isLocked ? 'View spec' : 'Resume review'} <ArrowRight size={14} />
-          </button>
-        </div>
-      )}
-
-      <section aria-labelledby="ts-grid-title">
-        <div className="ts-section-head">
-          <h2 id="ts-grid-title" className="ts-section-title"><Package size={17} /> Select an IBM-ready starter template</h2>
-          <span className="ts-section-note">Each template ships with a <code>flashmvp.json</code> manifest</span>
-        </div>
-        <div className="ts-grid" role="radiogroup" aria-labelledby="ts-grid-title">
-          {templates.map(template => (
-            <TemplateCard key={template.id} template={template} selected={template.id === selectedId}
-              onSelect={() => setSelectedId(template.id)} onUse={() => startWithTemplate(template)} />
-          ))}
-        </div>
-      </section>
-
-      <section className="ts-prompt" aria-labelledby={promptId}>
-        <div className="ts-prompt-head">
-          <label id={promptId} htmlFor={`${promptId}-input`} className="ts-section-title">
-            <Sparkles size={17} /> Or describe your project
-          </label>
-          <span className="ts-selected-pill">Using <strong>{selected.name}</strong></span>
-        </div>
-        <textarea id={`${promptId}-input`} ref={promptRef} className="ts-textarea" rows={3} maxLength={MAX_PROMPT_LENGTH}
-          placeholder="e.g. A marketplace where local bakers list products, customers order for pickup, and pay with Stripe."
-          value={prompt} aria-invalid={showError || undefined} aria-describedby={hintId}
-          onChange={event => setPrompt(event.target.value)} onBlur={() => trimmed && setTouched(true)}
-          onKeyDown={event => { if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); submit() } }} />
-        <div className="ts-quick">
-          <span className="ts-label">Try</span>
-          {QUICK_PROMPTS.map(text => (
-            <button key={text} type="button" className="ts-chip" onClick={() => { setPrompt(text); setTouched(false); promptRef.current?.focus() }}>
-              {text}
-            </button>
-          ))}
-        </div>
-        <div className="ts-prompt-foot">
-          <span id={hintId} className={showError ? 'ts-error' : 'ts-hint'}>
-            {showError
-              ? `Describe your project in at least ${MIN_PROMPT_LENGTH} characters.`
-              : <>{prompt.length}/{MAX_PROMPT_LENGTH} · <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Enter</kbd> to start</>}
+      {/* ── Initial Prompt Description Box ─────────────────── */}
+      <section style={{
+        background: 'rgba(14, 16, 28, 0.78)',
+        borderRadius: 16, padding: 22,
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        display: 'flex', flexDirection: 'column', gap: 14
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Sparkles size={16} color="#0F62FE" />
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: '#fff', margin: 0 }}>
+              Initial Project Specification Description
+            </h3>
+          </div>
+          <span style={{
+            fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 6,
+            background: 'rgba(15, 98, 254, 0.15)', border: '1px solid rgba(15, 98, 254, 0.3)',
+            color: '#60A5FA'
+          }}>
+            Creation Manifest
           </span>
-          <button type="button" className="ts-btn ts-btn--primary" onClick={submit}>
-            Generate spec <ArrowRight size={15} />
-          </button>
+        </div>
+
+
+        <textarea
+          readOnly
+          value={session?.prompt || MOCKED_PROJECT_PROMPT}
+          rows={3}
+          style={{
+            width: '100%', padding: 14, borderRadius: 10,
+            background: 'rgba(0, 0, 0, 0.4)', border: '1px solid rgba(255, 255, 255, 0.12)',
+            color: '#A7F3D0', fontFamily: 'monospace', fontSize: 13, lineHeight: 1.6,
+            resize: 'none', cursor: 'not-allowed'
+          }}
+        />
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Sparkles size={14} color="#0F62FE" />
+            Parsed into 3-Part SDD Specification by IBM Bob 2.0 Subagents
+          </span>
         </div>
       </section>
+
     </div>
   )
 }
+

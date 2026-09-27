@@ -55,8 +55,8 @@ export default function ProjectsDashboard() {
   // Filter projects
   const filteredProjects = projects.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          p.repo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          p.description.toLowerCase().includes(searchQuery.toLowerCase())
+      p.repo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.description.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -678,7 +678,7 @@ export default function ProjectsDashboard() {
                       cursor: 'pointer', boxShadow: '0 4px 14px rgba(15,98,254,0.4)'
                     }}
                   >
-                    Create &amp; Inject Repo
+                    Create
                   </button>
                 </div>
               </form>
