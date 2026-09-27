@@ -86,7 +86,12 @@ function EndpointCopyCard({
 export default function ProjectDetailsPage() {
   const navigate = useNavigate()
   const { projectId } = useParams<{ projectId?: string }>()
-  const project = projectsMock.find(item => item.id === projectId) || projectsMock[0]
+  const storedProjects: any[] = (() => {
+    try { return JSON.parse(localStorage.getItem('flashmvp_demo_projects') || '[]') }
+    catch { return [] }
+  })()
+  const allProjects = [...storedProjects, ...projectsMock]
+  const project = allProjects.find(item => item.id === projectId) || allProjects[0]
   const running = project.status === 'RUNNING'
 
   const fleet: Array<[string, React.ReactNode]> = [
@@ -226,7 +231,7 @@ export default function ProjectDetailsPage() {
           <span>{project.ibmServices.length} active runtime skills</span>
         </div>
         <div className="project-details-skills">
-          {project.ibmServices.map(service => (
+          {(project.ibmServices || []).map((service: string) => (
             <div className="project-detail-card project-detail-skill" key={service}>
               <span className="project-detail-skill-check" aria-hidden="true"><Check size={12} /></span>
               <div><strong>{service}</strong><small>Registered in .bob/skills/</small></div>

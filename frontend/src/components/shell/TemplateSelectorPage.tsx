@@ -2,11 +2,13 @@
  * BL-ARC-01 — Starter Template & Initial Architecture Configuration (Single Horizontal Display).
  * Shows the pre-configured starter template and read-only prompt created during project initialization.
  */
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Atom, CheckCircle2, Clock, Lock, Sparkles, Zap, Server, ShieldCheck, Database } from 'lucide-react'
-import { findTemplate, templates, type StarterTemplate } from '../../data/templates'
+import { ArrowRight, Atom, Clock, Sparkles } from 'lucide-react'
+import { MIN_PROMPT_LENGTH, MAX_PROMPT_LENGTH, findTemplate, type StarterTemplate } from '../../data/templates'
 
 import { useSpecSession } from '../../context/SpecSessionContext'
+import GitHubStarter from './GitHubStarter'
 import './TemplateSelectorPage.css'
 
 const MOCKED_PROJECT_PROMPT =
@@ -16,14 +18,18 @@ export default function TemplateSelectorPage({ onGenerate }: {
   onGenerate?: (template: StarterTemplate, prompt: string) => void
 }) {
   const navigate = useNavigate()
-  const { session, isLocked, startSession } = useSpecSession()
+  const { session, startSession } = useSpecSession()
 
   // Selected starter template (defaults to React + FastAPI)
-  const selected = findTemplate(session?.templateId ?? 'react-fastapi')
+  const selected = findTemplate(new URLSearchParams(window.location.search).get('github_template') ?? session?.templateId ?? 'react-fastapi')
+  const [prompt, setPrompt] = useState(session?.prompt || MOCKED_PROJECT_PROMPT)
 
   const proceedToSpec = () => {
-    const promptText = session?.prompt || MOCKED_PROJECT_PROMPT
-    startSession(selected.id, promptText)
+    const promptText = prompt.trim()
+    if (promptText.length < MIN_PROMPT_LENGTH || promptText.length > MAX_PROMPT_LENGTH) return
+    if (!session?.spec || session.templateId !== selected.id || session.prompt !== promptText) {
+      startSession(selected.id, promptText)
+    }
     onGenerate?.(selected, promptText)
     navigate('/specs', { state: { templateId: selected.id, prompt: promptText } })
   }
@@ -140,6 +146,8 @@ export default function TemplateSelectorPage({ onGenerate }: {
         </div>
       </section>
 
+      <GitHubStarter templateId={selected.id} />
+
       {/* ── Initial Prompt Description Box ─────────────────── */}
       <section style={{
         background: 'rgba(14, 16, 28, 0.78)',
@@ -165,14 +173,17 @@ export default function TemplateSelectorPage({ onGenerate }: {
 
 
         <textarea
-          readOnly
-          value={session?.prompt || MOCKED_PROJECT_PROMPT}
+          aria-label="Initial project specification description"
+          readOnly={!!session}
+          value={prompt}
+          onChange={event => setPrompt(event.target.value)}
+          maxLength={MAX_PROMPT_LENGTH}
           rows={3}
           style={{
             width: '100%', padding: 14, borderRadius: 10,
             background: 'rgba(0, 0, 0, 0.4)', border: '1px solid rgba(255, 255, 255, 0.12)',
             color: '#A7F3D0', fontFamily: 'monospace', fontSize: 13, lineHeight: 1.6,
-            resize: 'none', cursor: 'not-allowed'
+            resize: 'none', cursor: session ? 'not-allowed' : 'text'
           }}
         />
 
@@ -181,10 +192,13 @@ export default function TemplateSelectorPage({ onGenerate }: {
             <Sparkles size={14} color="#0F62FE" />
             Parsed into 3-Part SDD Specification by IBM Bob 2.0 Subagents
           </span>
+          <button type="button" className="btn btn--primary" onClick={proceedToSpec}
+            disabled={prompt.trim().length < MIN_PROMPT_LENGTH || prompt.trim().length > MAX_PROMPT_LENGTH}>
+            {session?.spec ? "Review spec" : "Generate spec"} <ArrowRight size={16} />
+          </button>
         </div>
       </section>
 
     </div>
   )
 }
-
