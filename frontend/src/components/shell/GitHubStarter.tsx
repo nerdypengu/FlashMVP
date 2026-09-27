@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Check, LoaderCircle } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabaseClient'
@@ -31,10 +32,11 @@ function restoreDraft(): Draft {
   catch { return emptyDraft }
 }
 
-export default function GitHubStarter({ templateId, onBusyChange }: {
-  templateId?: string; onBusyChange?: (busy: boolean) => void
+export default function GitHubStarter({ templateId, onBusyChange, onCreated }: {
+  templateId?: string; onBusyChange?: (busy: boolean) => void; onCreated?: () => void | Promise<void>
 }) {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const id = useId()
   const [connection, setConnection] = useState<Connection | null>(null)
   const [draft, setDraft] = useState(restoreDraft)
@@ -103,6 +105,8 @@ export default function GitHubStarter({ templateId, onBusyChange }: {
         const published = await api('/repositories', 'POST', { ...draft, template: templateId ?? draft.template })
         setResult(published)
         sessionStorage.removeItem(DRAFT_KEY)
+        if (onCreated) await onCreated()
+        else navigate('/dashboard')
       }) }}>
         <fieldset disabled={busy}>
           <label htmlFor={`${id}-name`}>Project / repository name</label>

@@ -95,6 +95,7 @@ def connection_db():
     try:
         with db:
             db.execute("CREATE TABLE IF NOT EXISTS github_connections (app_user TEXT PRIMARY KEY, payload TEXT NOT NULL)")
+            db.execute("CREATE TABLE IF NOT EXISTS github_projects (owner TEXT NOT NULL, repo TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY (owner, repo))")
             yield db
     finally:
         db.close()
@@ -280,6 +281,19 @@ class RepositoryRequest(BaseModel):
     template: Literal["react-fastapi", "nextjs-go"]
 
 
+@router.get("/projects")
+async def list_starter_projects(request: Request, user=Depends(app_user)):
+    owner = user
+    if user == "demo":
+        session = find_session(request, user)
+        if not session:
+            return []
+        owner = f"demo:{session['login']}"
+    with connection_db() as db:
+        rows = db.execute("SELECT payload FROM github_projects WHERE owner=? ORDER BY rowid DESC", (owner,)).fetchall()
+    return [json.loads(row[0]) for row in rows]
+
+
 def template_tree(template):
     root = Path(TEMPLATES_DIR) / template
     entries = []
@@ -338,5 +352,16 @@ async def create_repository(body: RepositoryRequest, request: Request, user=Depe
                 if created else "Repository creation could not be confirmed. Check GitHub before retrying.",
                 "repo_url": repo_url}})
         raise
-    return {"repo_url": repo_url, "full_name": repo["full_name"], "branch": repo["default_branch"],
-            "commit_sha": commit["sha"], "template": body.template, "private": repo["private"]}
+    published = {"repo_url": repo_url, "full_name": repo["full_name"], "branch": repo["default_branch"],
+                 "commit_sha": commit["sha"], "template": body.template, "private": repo["private"],
+                 "id": "github-" + repo["full_name"].replace("/", "-"), "name": body.name, "description": body.description}
+    owner = user if user != "demo" else f"demo:{session['login']}"
+    try:
+        with connection_db() as db:
+            db.execute("INSERT INTO github_projects VALUES (?, ?, ?) ON CONFLICT(owner, repo) DO UPDATE SET payload=excluded.payload",
+                       (owner, repo["full_name"], json.dumps(published)))
+    except sqlite3.Error:
+        return JSONResponse(status_code=502, content={"detail": {
+            "message": "Starter published, but saving the project to your dashboard failed. Inspect the repository before retrying.",
+            "repo_url": repo_url}})
+    return published
