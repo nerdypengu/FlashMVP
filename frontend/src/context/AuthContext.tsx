@@ -7,12 +7,8 @@
  *   loading     — true while the initial session is being restored
  *   signIn(email, password)  — sign in with email + password
  *   signUp(email, password)  — create a new account
+ *   signInWithGithub()       — sign in via GitHub OAuth provider
  *   signOut()                — log out and clear session
- *
- * In DEMO_MODE (VITE_DEMO_MODE=true):
- *   - No real Supabase calls are made.
- *   - signIn() immediately resolves with a mock admin user.
- *   - The rest of the app sees a logged-in admin without needing real credentials.
  */
 import {
   createContext,
@@ -30,7 +26,7 @@ const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true'
 // ── Mock demo user ────────────────────────────────────────────────────────────
 const DEMO_USER = {
   id:    'demo-user-id',
-  email: 'admin@flashmvp.demo',
+  email: 'user@flashmvp.demo',
 } as unknown as User
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -45,6 +41,7 @@ interface AuthState {
 interface AuthContextValue extends AuthState {
   signIn:  (email: string, password: string) => Promise<{ error: string | null }>
   signUp:  (email: string, password: string) => Promise<{ error: string | null }>
+  signInWithGithub: () => Promise<{ error: string | null }>
   signOut: () => Promise<void>
 }
 
@@ -55,7 +52,7 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
     user:    DEMO_MODE ? DEMO_USER : null,
-    role:    DEMO_MODE ? 'admin'   : null,
+    role:    DEMO_MODE ? 'user'   : null,
     loading: !DEMO_MODE,   // demo mode needs no async restore
   })
 
@@ -90,8 +87,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (_event, session) => {
         const user = session?.user ?? null
         setState({ user, role: null, loading: !!user })
-        // Return immediately: awaiting a Supabase query inside this callback
-        // holds the Auth lock and can deadlock the profile request.
         if (user) void fetchRole(user.id).then(role => setState(previous =>
           previous.user?.id === user.id ? { user, role, loading: false } : previous))
       }
@@ -104,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(
     async (email: string, password: string): Promise<{ error: string | null }> => {
       if (DEMO_MODE) {
-        setState({ user: DEMO_USER, role: 'admin', loading: false })
+        setState({ user: DEMO_USER, role: 'user', loading: false })
         return { error: null }
       }
       if (!supabase) return { error: 'Supabase not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.' }
@@ -120,18 +115,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = useCallback(
     async (email: string, password: string): Promise<{ error: string | null }> => {
       if (DEMO_MODE) {
-        setState({ user: DEMO_USER, role: 'admin', loading: false })
+        setState({ user: DEMO_USER, role: 'user', loading: false })
         return { error: null }
       }
       if (!supabase) return { error: 'Supabase not configured.' }
 
       const { error } = await supabase.auth.signUp({ email, password })
       if (error) return { error: error.message }
-      // Profile row is auto-created by the DB trigger (handle_new_user).
       return { error: null }
     },
     []
   )
+
+  // ── signInWithGithub ──────────────────────────────────────────────────────
+  const signInWithGithub = useCallback(async (): Promise<{ error: string | null }> => {
+    if (DEMO_MODE) {
+      const githubDemoUser = {
+        id: 'demo-github-user-id',
+        email: 'developer@github.com',
+        user_metadata: { full_name: 'GitHub Developer', user_name: 'github_dev' }
+      } as unknown as User
+      setState({ user: githubDemoUser, role: 'user', loading: false })
+      return { error: null }
+    }
+    if (!supabase) return { error: 'Supabase not configured.' }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`
+      }
+    })
+    if (error) return { error: error.message }
+    return { error: null }
+  }, [])
 
   // ── signOut ───────────────────────────────────────────────────────────────
   const signOut = useCallback(async () => {
@@ -140,7 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ ...state, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ ...state, signIn, signUp, signInWithGithub, signOut }}>
       {children}
     </AuthContext.Provider>
   )
