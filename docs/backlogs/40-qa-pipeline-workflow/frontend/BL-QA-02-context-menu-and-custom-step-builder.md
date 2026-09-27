@@ -1,7 +1,9 @@
 # BL-QA-02 — Context Menu & Custom Step Builder
 > **Assigned To:** 📊 **Person 2** — QA Canvas & Observability Specialist  
 > **Feature:** QA Pipeline Workflow | **Layer:** Frontend  
-> **File:** `client/src/components/qa/ContextMenu.jsx`, `client/src/components/qa/AddStepModal.jsx`
+> **File:** `frontend/src/components/qa/ContextMenu.tsx`, `frontend/src/components/qa/AddStepModal.tsx`
+
+**Frontend demo status:** Implemented. Custom steps stay in the QA tab state and can be run; backend persistence and command execution remain pending.
 
 ---
 
@@ -15,8 +17,8 @@ Allows developers to right-click the QA canvas OR click the `"+ Add Custom Step"
 
 | File | Purpose |
 | :--- | :--- |
-| `client/src/components/qa/ContextMenu.jsx` | Right-click context menu |
-| `client/src/components/qa/AddStepModal.jsx` | Modal to configure custom step |
+| `frontend/src/components/qa/ContextMenu.tsx` | Right-click context menu |
+| `frontend/src/components/qa/AddStepModal.tsx` | Modal to configure custom step |
 
 ---
 

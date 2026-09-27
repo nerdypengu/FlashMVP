@@ -1,0 +1,26 @@
+{
+  "ibm_cloud": {
+    "region": "us-south",
+    "resource_group": "Default",
+    "services": {
+      "code_engine": {
+        "project_name": "flashmvp-containers",
+        "scale_min": 0,
+        "scale_max": 10
+      },
+      "databases_for_postgresql": {
+        "instance_name": "flashmvp-db",
+        "ssl_mode": "require",
+        "default_schema_prefix": "app_"
+      },
+      "secrets_manager": {
+        "instance_name": "flashmvp-vault",
+        "secret_type": "kv"
+      },
+      "watsonx_qa": {
+        "model_id": "ibm/granite-13b-instruct-v2",
+        "audit_enabled": true
+      }
+    }
+  }
+}

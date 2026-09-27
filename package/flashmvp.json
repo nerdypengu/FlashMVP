@@ -1,0 +1,25 @@
+{
+  "name": "flashmvp-starter-app",
+  "version": "2.1.0",
+  "template": "react-fastapi",
+  "services": {
+    "frontend": {
+      "build": "npm run build",
+      "port": 3000,
+      "dockerfile": "Dockerfile.frontend"
+    },
+    "backend": {
+      "build": "docker build -t flashmvp-backend .",
+      "port": 8000,
+      "dockerfile": "Dockerfile.backend"
+    }
+  },
+  "ibm_skills": [
+    "bob-skill-code-engine",
+    "bob-skill-cloud-db",
+    "bob-skill-secrets-vault",
+    "bob-skill-watsonx-qa",
+    "bob-skill-manifest-parser",
+    "bob-skill-sdd-docs"
+  ]
+}

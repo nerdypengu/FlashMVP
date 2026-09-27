@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "flashmvp-bob-platform": {
+      "url": "http://localhost:5173/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ibm-bob-local-token-flashmvp"
+      },
+      "description": "FlashMVP IBM Bob 2.0 Agent Platform & Telemetry Connector MCP Server"
+    },
+    "ibm-cloud-code-engine": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@ibm-cloud/code-engine-mcp@latest"
+      ],
+      "description": "IBM Cloud Code Engine MCP Tool Server"
+    },
+    "ibm-watsonx-qa": {
+      "url": "https://watsonx-qa.ibmbob-dev.com/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ibm-watsonx-qa-token"
+      },
+      "description": "Watsonx Automated Security & Quality Assurance MCP Server"
+    }
+  }
+}
