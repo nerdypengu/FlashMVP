@@ -13,19 +13,22 @@ export default function IBMToolBindingsPanel({ bindings }: { bindings: IBMToolBi
   const enabled = BINDINGS.filter(binding => bindings[binding.key]).length
   return (
     <section className="sr-bindings" aria-labelledby="sr-bindings-title">
-      <div className="sr-bindings-head">
-        <h3 id="sr-bindings-title" className="sr-section-label">IBM Tool Bindings</h3>
-        <span className="sr-bindings-count">{enabled}/{BINDINGS.length} enabled</span>
-      </div>
+      <h3 id="sr-bindings-title" className="sr-bindings-title">
+        IBM tool bindings <span>{enabled}/{BINDINGS.length} enabled</span>
+      </h3>
       <ul className="sr-bindings-row">
         {BINDINGS.map(({ key, label, skill, icon: Icon }) => {
           const on = !!bindings[key]
           return (
-            <li key={key} className={`sr-binding${on ? ' is-on' : ''}`} title={`${skill} — ${on ? 'enabled' : 'disabled'}`}>
-              <span className="sr-binding-dot" aria-hidden="true" />
-              <Icon size={14} aria-hidden="true" />
-              <span>{label}</span>
-              <span className="sr-visually-hidden">{on ? 'enabled' : 'disabled'}</span>
+            <li key={key} className={`sr-binding${on ? ' is-on' : ''}`}>
+              <span className="sr-binding-icon"><Icon size={14} aria-hidden="true" /></span>
+              <span className="sr-binding-text">
+                <span className="sr-binding-label">{label}</span>
+                <span className="sr-binding-skill">{skill}</span>
+              </span>
+              <span className="sr-binding-state" aria-label={on ? 'enabled' : 'disabled'}>
+                <span className="sr-binding-dot" aria-hidden="true" />{on ? 'Bound' : 'Off'}
+              </span>
             </li>
           )
         })}
