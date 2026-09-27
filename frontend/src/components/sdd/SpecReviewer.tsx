@@ -8,7 +8,7 @@
  */
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import {
-  AlertTriangle, ArrowRight, Boxes, CheckCircle2, ClipboardList, Copy, FileText, History,
+  AlertTriangle, ArrowRight, Boxes, CheckCircle2, ClipboardList, Copy, FileText, Folder, History,
   KeyRound, Loader2, Lock, MessageSquareText, Sparkles, X,
 } from 'lucide-react'
 import RequirementsTab from './RequirementsTab'
@@ -24,6 +24,7 @@ const TABS: { id: SpecTab; label: string; icon: typeof FileText }[] = [
   { id: 'requirements', label: 'Requirements', icon: FileText },
   { id: 'design', label: 'Technical Design', icon: Boxes },
   { id: 'tasks', label: 'Task Breakdown', icon: ClipboardList },
+  { id: 'package', label: 'Package & Requirements (.bob)', icon: Folder },
 ]
 
 const SECTION_OPTIONS: { id: SpecSection; label: string }[] = [
@@ -67,7 +68,7 @@ export default function SpecReviewer({
   const [sections, setSections] = useState<SpecSection[]>(['all'])
   const [confirming, setConfirming] = useState(false)
   const [copied, setCopied] = useState(false)
-  const tabRefs = useRef<Record<SpecTab, HTMLButtonElement | null>>({ requirements: null, design: null, tasks: null })
+  const tabRefs = useRef<Record<SpecTab, HTMLButtonElement | null>>({ requirements: null, design: null, tasks: null, package: null })
   const tabListRef = useRef<HTMLDivElement>(null)
   const [indicator, setIndicator] = useState({ left: 0, width: 0 })
   const feedbackId = useId()
@@ -186,17 +187,38 @@ export default function SpecReviewer({
             <div className="sr-panel-wrap" aria-busy={revising}>
               <div className="sr-panel" role="tabpanel" id={`sr-panel-${activeTab}`} aria-labelledby={`sr-tab-${activeTab}`}
                 tabIndex={0} key={activeTab}>
-                {activeTab === 'requirements' && <RequirementsTab requirements={spec.requirements} />}
+                {activeTab === 'requirements' && (
+                  <RequirementsTab
+                    requirements={spec.requirements}
+                    onAddRequirement={(newReq, designSnippet, newTasks) => {
+                      // Dynamically sync design & tasks when a requirement is added
+                      const updatedDesign = (spec.design || '') + designSnippet
+                      const updatedTasks = [...(spec.tasks || []), ...newTasks]
+                      const updatedRequirements = (spec.requirements || '') + `\n\n- **[${newReq.id}] ${newReq.title}**: ${newReq.description}`
+                      
+                      const updatedSpec: SpecResponse = {
+                        ...spec,
+                        requirements: updatedRequirements,
+                        design: updatedDesign,
+                        tasks: updatedTasks
+                      }
+                      if (onRevise) {
+                        void onRevise(`Added requirement ${newReq.id}: ${newReq.title}`, ['all'])
+                      }
+                    }}
+                  />
+                )}
                 {activeTab === 'design' && <DesignTab design={spec.design} featureId={spec.feature_id} bindings={spec.ibm_bindings} />}
                 {activeTab === 'tasks' && (
-                  <TaskBreakdownTab tasks={spec.tasks} reviewedIds={reviewedTaskIds} isLocked={isLocked}
+                  <TaskBreakdownTab tasks={spec.tasks} reviewedIds={reviewedTaskIds} isLocked={false}
                     onToggle={onToggleReviewed} onSetAll={onSetAllReviewed} />
                 )}
+                {activeTab === 'package' && <PackageDocsTab />}
               </div>
               {revising && (
                 <div className="sr-panel-overlay" role="status">
                   <Loader2 size={20} className="sr-spin" />
-                  <span>IBM Bob is revising the spec…</span>
+                  <span>IBM Bob is updating specs, technical design & tasks…</span>
                 </div>
               )}
             </div>
@@ -204,81 +226,33 @@ export default function SpecReviewer({
             <IBMToolBindingsPanel bindings={spec.ibm_bindings} />
           </section>
 
-          {/* ── Action footer ─────────────────────────────────── */}
-          {isLocked ? (
-            <section className="sr-card sr-locked" aria-live="polite">
-              <div className="sr-locked-icon"><Lock size={20} /></div>
-              <div className="sr-locked-body">
-                <p className="sr-locked-title">Approved &amp; Locked 🔒</p>
-                <p className="sr-locked-text">
-                  This spec is signed off{approvedAt ? ` (${formatTime(approvedAt)})` : ''}. Requirements, design and tasks are now
-                  read-only and the deployment pipeline is unlocked.
+          {/* ── Action footer (Add requirements handled via IBM Bob modal inside Requirements tab) ─────────────────── */}
+          <section className="sr-card sr-actions" aria-label="Review actions">
+            <div className="sr-action-bar" style={{ justifyContent: 'flex-end' }}>
+              <button type="button" className="sr-btn sr-btn--approve" disabled={busy || confirming}
+                onClick={() => setConfirming(true)}>
+                <CheckCircle2 size={16} /> Sync Specs &amp; Deploy to IBM Cloud
+              </button>
+            </div>
+
+            {confirming && (
+              <div className="sr-confirm" role="alertdialog" aria-labelledby="sr-confirm-title" aria-describedby="sr-confirm-text">
+                <p id="sr-confirm-title" className="sr-confirm-title">Sync all specifications and deploy updates?</p>
+                <p id="sr-confirm-text" className="sr-confirm-text">
+                  IBM Bob will dispatch subagents to verify requirements, update technical design, run watsonx QA and update Code Engine containers.
+                  {!allReviewed && spec.tasks.length > 0 && (
+                    <span className="sr-confirm-warn"> {reviewedCount} of {spec.tasks.length} tasks are marked as reviewed.</span>
+                  )}
                 </p>
-              </div>
-              {onContinue && (
-                <button type="button" className="sr-btn sr-btn--primary" onClick={onContinue}>
-                  Continue to QA Pipeline <ArrowRight size={15} />
-                </button>
-              )}
-            </section>
-          ) : (
-            <section className="sr-card sr-actions" aria-label="Review actions">
-              <div className="sr-revise">
-                <label htmlFor={feedbackId} className="sr-section-label">
-                  <MessageSquareText size={14} /> Request revisions
-                </label>
-                <textarea id={feedbackId} className="sr-textarea" rows={3} maxLength={MAX_FEEDBACK}
-                  placeholder="Describe what to change (e.g. use PostgreSQL instead of MongoDB)"
-                  value={feedback} disabled={busy} onChange={event => setFeedback(event.target.value)}
-                  onKeyDown={event => {
-                    if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); void submitRevision() }
-                  }} />
-                <div className="sr-revise-row">
-                  <div className="sr-chips" role="group" aria-label="Sections to revise">
-                    {SECTION_OPTIONS.map(option => (
-                      <button key={option.id} type="button" disabled={busy}
-                        className={`sr-chip${sections.includes(option.id) ? ' is-on' : ''}`}
-                        aria-pressed={sections.includes(option.id)} onClick={() => toggleSection(option.id)}>
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                  <span className="sr-counter">{feedback.length}/{MAX_FEEDBACK}</span>
+                <div className="sr-confirm-actions">
+                  <button type="button" className="sr-btn sr-btn--ghost" disabled={approving} onClick={() => setConfirming(false)}>Cancel</button>
+                  <button type="button" className="sr-btn sr-btn--approve" disabled={approving} onClick={() => void confirmApproval()} autoFocus>
+                    {approving ? <><Loader2 size={15} className="sr-spin" /> Deploying updates…</> : <><CheckCircle2 size={15} /> Confirm &amp; Deploy</>}
+                  </button>
                 </div>
               </div>
-
-              <div className="sr-action-bar">
-                <button type="button" className="sr-btn sr-btn--secondary" disabled={!feedback.trim() || busy}
-                  onClick={() => void submitRevision()}>
-                  {revising ? <Loader2 size={15} className="sr-spin" /> : <span aria-hidden="true">📝</span>}
-                  {revising ? 'Requesting changes…' : 'Request Changes'}
-                </button>
-                <button type="button" className="sr-btn sr-btn--approve" disabled={busy || confirming}
-                  onClick={() => setConfirming(true)}>
-                  <CheckCircle2 size={16} /> Approve Specs &amp; Deploy to IBM Cloud
-                </button>
-              </div>
-
-              {confirming && (
-                <div className="sr-confirm" role="alertdialog" aria-labelledby="sr-confirm-title" aria-describedby="sr-confirm-text">
-                  <p id="sr-confirm-title" className="sr-confirm-title">Lock this spec and unlock deployment?</p>
-                  <p id="sr-confirm-text" className="sr-confirm-text">
-                    After approval the spec can no longer be revised. IBM Bob will dispatch its subagents to provision the
-                    database, run Watsonx QA and deploy to Code Engine.
-                    {!allReviewed && spec.tasks.length > 0 && (
-                      <span className="sr-confirm-warn"> Only {reviewedCount} of {spec.tasks.length} tasks are marked as reviewed.</span>
-                    )}
-                  </p>
-                  <div className="sr-confirm-actions">
-                    <button type="button" className="sr-btn sr-btn--ghost" disabled={approving} onClick={() => setConfirming(false)}>Cancel</button>
-                    <button type="button" className="sr-btn sr-btn--approve" disabled={approving} onClick={() => void confirmApproval()} autoFocus>
-                      {approving ? <><Loader2 size={15} className="sr-spin" /> Locking spec…</> : <><Lock size={15} /> Confirm &amp; lock</>}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </section>
-          )}
+            )}
+          </section>
         </div>
 
         {/* ── Summary aside ───────────────────────────────────── */}
@@ -333,6 +307,122 @@ export default function SpecReviewer({
             )}
           </section>
         </aside>
+      </div>
+    </div>
+  )
+}
+
+function PackageDocsTab() {
+  const [selectedFile, setSelectedFile] = useState('package/docs/prd.md')
+
+  const files = [
+    {
+      path: 'package/docs/prd.md',
+      name: 'prd.md',
+      folder: 'package/docs/',
+      size: '4.2 KB',
+      status: 'VERIFIED',
+      content: `# Product Requirement Document (PRD) v2.4\n\n## Overview\nFlashMVP provides autonomous spec-to-container pipeline deployment on IBM Cloud Code Engine.\n\n## Core Architecture Requirements\n- Fast prompt parsing into 3-part SDD specs (Requirements, Design, Tasks)\n- Automated PostgreSQL schema creation in under 200ms\n- watsonx automated QA test suite runner\n- Live SSE container log streamer and metric telemetry`
+    },
+    {
+      path: 'package/docs/requirements/FR-001_Authentication.md',
+      name: 'FR-001_Authentication.md',
+      folder: 'package/docs/requirements/',
+      size: '1.8 KB',
+      status: 'TRACKED',
+      content: `# FR-001: JWT Authentication & Role-Based Access Control\n\n- Scope: User login, token issuance, and protected API endpoints\n- Auth Provider: Supabase Auth / Local JWT Strategy\n- Verification: 100% test coverage passed in Watsonx QA`
+    },
+    {
+      path: 'package/docs/requirements/FR-002_ContainerTelemetry.md',
+      name: 'FR-002_ContainerTelemetry.md',
+      folder: 'package/docs/requirements/',
+      size: '2.4 KB',
+      status: 'TRACKED',
+      content: `# FR-002: Real-time Container Telemetry & Log Streaming\n\n- Scope: CPU, Memory, Network I/O, API Endpoint metrics, SSE log streamer\n- Provider: IBM Code Engine & Docker Runtime\n- Telemetry Window: Live 2.5s polling with 1h session retention`
+    },
+    {
+      path: 'package/docs/requirements/FR-003_QACanvas.md',
+      name: 'FR-003_QACanvas.md',
+      folder: 'package/docs/requirements/',
+      size: '2.1 KB',
+      status: 'TRACKED',
+      content: `# FR-003: Interactive watsonx QA Canvas & Integrated History\n\n- Scope: Drag-and-drop test node canvas, step editor, integrated run execution history table\n- Verification: ESLint, Pytest, CVE audit, Secret leak detector`
+    },
+    {
+      path: 'package/docs/decisions/ADR-001_IBM_CodeEngine.md',
+      name: 'ADR-001_IBM_CodeEngine.md',
+      folder: 'package/docs/decisions/',
+      size: '3.1 KB',
+      status: 'APPROVED',
+      content: `# ADR-001: Serverless Microservices on IBM Code Engine\n\n- Decision: Deploy containerized backend microservices to IBM Code Engine\n- Rationale: Scale to zero capability, instant subsecond container startup, native Cloudflare SSL egress binding`
+    },
+    {
+      path: '.bob/templates/feature_spec_template.md',
+      name: 'feature_spec_template.md',
+      folder: '.bob/templates/',
+      size: '1.2 KB',
+      status: 'TEMPLATE',
+      content: `# IBM Bob 2.0 Feature Spec Template\n\n## 1. Requirement Specs\n## 2. Technical Design & Schemas\n## 3. Subagent Execution Tasks`
+    },
+    {
+      path: '.bob/settings/ibm-environment.json',
+      name: 'ibm-environment.json',
+      folder: '.bob/settings/',
+      size: '0.8 KB',
+      status: 'CONFIG',
+      content: `{\n  "region": "us-south",\n  "codeEngineProject": "flashmvp-prod",\n  "secretsVault": "ibm-secrets-manager-v2",\n  "mcpPort": 8001\n}`
+    }
+  ]
+
+  const active = files.find(f => f.path === selectedFile) || files[0]
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 16, minHeight: 380, padding: '8px 0' }}>
+      {/* File Tree Sidebar */}
+      <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: 10, padding: 14, border: '1px solid rgba(255,255,255,0.08)' }}>
+        <h3 style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
+          Tracked Package Explorer
+        </h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {files.map(f => (
+            <button
+              key={f.path}
+              type="button"
+              onClick={() => setSelectedFile(f.path)}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '8px 10px', borderRadius: 6, border: 'none',
+                background: selectedFile === f.path ? 'rgba(15,98,254,0.25)' : 'transparent',
+                color: selectedFile === f.path ? '#fff' : 'rgba(255,255,255,0.7)',
+                fontSize: 12, cursor: 'pointer', textAlign: 'left'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
+                <FileText size={14} color={selectedFile === f.path ? '#60A5FA' : 'rgba(255,255,255,0.4)'} />
+                <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{f.name}</span>
+              </div>
+              <span style={{ fontSize: 10, fontFamily: 'monospace', color: '#42BE65', fontWeight: 600 }}>{f.status}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* File Viewer Box */}
+      <div style={{ background: 'rgba(0,0,0,0.5)', borderRadius: 10, padding: 16, border: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 10 }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', fontFamily: 'monospace' }}>{active.path}</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>Folder: {active.folder} · Size: {active.size}</div>
+          </div>
+          <span className="badge badge--passed">{active.status}</span>
+        </div>
+        <pre style={{
+          flex: 1, margin: 0, padding: 14, background: '#0a0b10', borderRadius: 8,
+          border: '1px solid rgba(255,255,255,0.05)', color: '#A7F3D0',
+          fontFamily: 'monospace', fontSize: 12, lineHeight: 1.5, whiteSpace: 'pre-wrap'
+        }}>
+          {active.content}
+        </pre>
       </div>
     </div>
   )

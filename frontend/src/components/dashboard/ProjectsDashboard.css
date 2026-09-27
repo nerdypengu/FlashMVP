@@ -16,7 +16,7 @@
   --dash-red-bg: rgba(239, 68, 68, 0.12);
   --dash-red-border: rgba(239, 68, 68, 0.28);
   --dash-cyan: #38bdf8;
-  --dash-serif: Georgia, "Times New Roman", serif;
+  --dash-serif: var(--font-sans, "Inter", "Segoe UI", system-ui, sans-serif);
 
   display: flex;
   flex-direction: column;

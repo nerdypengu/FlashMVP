@@ -1,13 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Plus,
-  Search,
-  Square,
-  Play,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Plus, Search, Square, Play, Trash2, X } from "lucide-react";
 import initialProjects from "../../mocks/projects_mock.json";
 import GitHubStarter from "../shell/GitHubStarter";
 import "./ProjectsDashboard.css";
@@ -48,7 +41,9 @@ export default function ProjectsDashboard() {
   >("ALL");
 
   // Modal state
-  const [isModalOpen, setIsModalOpen] = useState(() => new URLSearchParams(window.location.search).has('github'));
+  const [isModalOpen, setIsModalOpen] = useState(() =>
+    new URLSearchParams(window.location.search).has("github"),
+  );
   const [isClosingModal, setIsClosingModal] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
 
@@ -202,8 +197,13 @@ export default function ProjectsDashboard() {
                 className={`dash-popover-card ${isClosingModal ? "is-closing" : ""}`}
               >
                 <span className="dash-popover-arrow" />
-                <button type="button" className="btn btn--ghost" onClick={handleCloseModal}
-                  disabled={isDeploying} aria-label="Close create repository">
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  onClick={handleCloseModal}
+                  disabled={isDeploying}
+                  aria-label="Close create repository"
+                >
                   <X size={18} />
                 </button>
                 <GitHubStarter onBusyChange={setIsDeploying} />
@@ -474,6 +474,353 @@ export default function ProjectsDashboard() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ── Create New Project Modal ─────────────────────────────────── */}
+      {isModalOpen && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            background: "rgba(0,0,0,0.75)",
+            backdropFilter: "blur(8px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 540,
+              background: "#0D0F17",
+              border: "1px solid rgba(15, 98, 254, 0.3)",
+              borderRadius: 20,
+              padding: 28,
+              boxShadow:
+                "0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(15, 98, 254, 0.2)",
+            }}
+          >
+            {isDeploying ? (
+              /* Deployment Progress View */
+              <div style={{ textAlign: "center", padding: "24px 0" }}>
+                <div
+                  style={{
+                    width: 56,
+                    height: 56,
+                    margin: "0 auto 20px auto",
+                    borderRadius: "50%",
+                    background: "rgba(15, 98, 254, 0.15)",
+                    border: "2px solid #0F62FE",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Bot size={28} color="#0F62FE" />
+                </div>
+                <h3
+                  style={{
+                    color: "#fff",
+                    fontSize: 18,
+                    fontWeight: 700,
+                    margin: "0 0 8px 0",
+                  }}
+                >
+                  IBM Bob 2.0 Provisioning Fleet
+                </h3>
+                <p
+                  style={{
+                    color: "#60A5FA",
+                    fontSize: 13,
+                    margin: "0 0 24px 0",
+                    minHeight: 20,
+                  }}
+                >
+                  {deployStepsText[deployStep]}
+                </p>
+
+                {/* Progress bar */}
+                <div
+                  style={{
+                    height: 6,
+                    background: "rgba(255,255,255,0.1)",
+                    borderRadius: 4,
+                    overflow: "hidden",
+                    maxWidth: 360,
+                    margin: "0 auto",
+                  }}
+                >
+                  <div
+                    style={{
+                      height: "100%",
+                      background: "#0F62FE",
+                      width: `${((deployStep + 1) / deployStepsText.length) * 100}%`,
+                      transition: "width 0.5s ease",
+                    }}
+                  />
+                </div>
+              </div>
+            ) : (
+              /* Input Form View */
+              <form
+                onSubmit={handleCreateProject}
+                style={{ display: "flex", flexDirection: "column", gap: 18 }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 10 }}
+                  >
+                    <Rocket size={20} color="#0F62FE" />
+                    <h2
+                      style={{
+                        fontSize: 18,
+                        fontWeight: 700,
+                        color: "#fff",
+                        margin: 0,
+                      }}
+                    >
+                      Create New Project
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "rgba(255,255,255,0.5)",
+                      cursor: "pointer",
+                      padding: 4,
+                    }}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: "rgba(255,255,255,0.8)",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Project Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Payments Microservice"
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      borderRadius: 8,
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      color: "#fff",
+                      fontSize: 13,
+                      outline: "none",
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: "rgba(255,255,255,0.8)",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Target GitHub Repository (OAuth Linked)
+                  </label>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 13,
+                        color: "rgba(255,255,255,0.4)",
+                        fontFamily: "monospace",
+                      }}
+                    >
+                      github.com/ibmbob-dev/
+                    </span>
+                    <input
+                      type="text"
+                      placeholder={
+                        newProjectName
+                          ? newProjectName
+                              .toLowerCase()
+                              .replace(/[^a-z0-9]/g, "-")
+                          : "repo-name"
+                      }
+                      value={newRepoName}
+                      onChange={(e) => setNewRepoName(e.target.value)}
+                      style={{
+                        flex: 1,
+                        padding: "10px 12px",
+                        borderRadius: 8,
+                        background: "rgba(255,255,255,0.05)",
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        color: "#fff",
+                        fontSize: 13,
+                        outline: "none",
+                        fontFamily: "monospace",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: "rgba(255,255,255,0.8)",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Starter Template
+                  </label>
+                  <select
+                    value={selectedTemplateId}
+                    onChange={(e) => setSelectedTemplateId(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      borderRadius: 8,
+                      background: "#161922",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      color: "#fff",
+                      fontSize: 13,
+                      outline: "none",
+                    }}
+                  >
+                    {TEMPLATES.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} — {t.description}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: "rgba(255,255,255,0.8)",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Description
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Brief summary of your application..."
+                    value={newProjectDesc}
+                    onChange={(e) => setNewProjectDesc(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      borderRadius: 8,
+                      background: "rgba(255,255,255,0.05)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      color: "#fff",
+                      fontSize: 13,
+                      outline: "none",
+                      resize: "vertical",
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <input
+                    type="checkbox"
+                    id="private-repo-check"
+                    checked={isPrivateRepo}
+                    onChange={(e) => setIsPrivateRepo(e.target.checked)}
+                    style={{
+                      accentColor: "#0F62FE",
+                      width: 16,
+                      height: 16,
+                      cursor: "pointer",
+                    }}
+                  />
+                  <label
+                    htmlFor="private-repo-check"
+                    style={{
+                      fontSize: 13,
+                      color: "rgba(255,255,255,0.8)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Create as Private GitHub Repository
+                  </label>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    justifyContent: "flex-end",
+                    marginTop: 8,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    style={{
+                      padding: "10px 16px",
+                      borderRadius: 8,
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      background: "transparent",
+                      color: "rgba(255,255,255,0.7)",
+                      fontSize: 13,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    style={{
+                      padding: "10px 20px",
+                      borderRadius: 8,
+                      border: "none",
+                      background: "#0F62FE",
+                      color: "#fff",
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: "pointer",
+                      boxShadow: "0 4px 14px rgba(15,98,254,0.4)",
+                    }}
+                  >
+                    Create
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
       )}
     </div>

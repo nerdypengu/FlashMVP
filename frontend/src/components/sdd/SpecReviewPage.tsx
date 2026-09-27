@@ -29,7 +29,7 @@ export default function SpecReviewPage({ onApproved }: { onApproved?: () => void
   const startOver = () => {
     cancel()
     resetSession()
-    navigate('/starter')
+    navigate('/project/proj-001')
   }
 
   if (!session) {
@@ -40,13 +40,14 @@ export default function SpecReviewPage({ onApproved }: { onApproved?: () => void
           <div className="sr-empty-icon"><FilePlus2 size={26} /></div>
           <h2>No spec is waiting for review</h2>
           <p>Pick an IBM-ready starter template and describe your app. IBM Bob 2.0 will draft requirements, a technical design and a task breakdown for you to approve.</p>
-          <button type="button" className="sr-btn sr-btn--primary" onClick={() => navigate('/starter')}>
-            <Layers size={15} /> Choose a starter template
+          <button type="button" className="sr-btn sr-btn--primary" onClick={() => navigate('/project/proj-001')}>
+            <Layers size={15} /> View Starter Template in Project Details
           </button>
         </div>
       </div>
     )
   }
+
 
   const template = findTemplate(session.templateId)
 
