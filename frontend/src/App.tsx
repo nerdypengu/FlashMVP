@@ -5,8 +5,8 @@ import QACanvas from './components/qa/QACanvas'
 import RunHistoryTable, { type Run } from './components/qa/RunHistoryTable'
 import PlaygroundWindow from './components/playground/PlaygroundWindow'
 import TelemetryCharts from './components/telemetry/TelemetryCharts'
-import TemplateSelector, { TEMPLATES, type Template } from './components/shell/TemplateSelector'
-import SpecReviewer, { type SpecData } from './components/sdd/SpecReviewer'
+import TemplateSelectorPage from './components/shell/TemplateSelectorPage'
+import SpecReviewPage from './components/sdd/SpecReviewPage'
 import AppCatalog from './components/portal/AppCatalog'
 import ProjectsDashboard from './components/dashboard/ProjectsDashboard'
 import ProjectDetailsPage from './components/dashboard/ProjectDetailsPage'
@@ -21,18 +21,6 @@ import BinaryCanvasBackground from './components/ui/BinaryCanvasBackground'
 import { useAuth } from './context/AuthContext'
 import mockData from './mocks/qa_mock.json'
 import { DEMO_MODE, errorMessage, loadProjects, loadRuns, type Project } from './lib/person2Data'
-
-const DEFAULT_SPEC: SpecData = {
-  projectId: 'proj_8f92a', template: TEMPLATES[0],
-  prompt: 'E-commerce store with Supabase auth & Stripe checkout', status: 'DRAFT',
-  requirements: '# FlashStore\n\nBuyers browse products and check out; admins manage inventory.',
-  architecture: 'React frontend → FastAPI backend → PostgreSQL',
-  ibmBindings: [
-    { tool: 'IBM Code Engine', purpose: 'Container deployment', status: 'Ready' },
-    { tool: 'IBM Cloud DB', purpose: 'PostgreSQL', status: 'Ready' },
-  ],
-  tasks: [{ id: 'TSK-01', title: 'Provision the application', subagent: 'Bob', estimate: 'Pending' }],
-}
 
 function ProjectTelemetry({ project }: { project?: Project }) {
   const { projectId } = useParams()
@@ -49,7 +37,6 @@ export default function App() {
   const [dataLoading, setDataLoading] = useState(false)
   const [dataError, setDataError] = useState('')
   const [reload, setReload] = useState(0)
-  const [spec, setSpec] = useState<SpecData>(DEFAULT_SPEC)
   const project = projects.find(item => item.id === projectId)
   const projectPage = ['/qa', '/history', '/playground', '/telemetry'].includes(location.pathname)
 
@@ -93,10 +80,6 @@ export default function App() {
   </DashboardLayout></RequireAuth>
 
   const card = (content: React.ReactNode) => dashboard(<div className="workspace-card glass-card page-enter">{content}</div>)
-  const generateSpec = (template: Template, prompt: string) => {
-    setSpec(previous => ({ ...previous, template, prompt, status: 'DRAFT' }))
-    navigate('/specs')
-  }
 
   return <Routes>
     <Route path="/" element={user ? <Navigate to="/dashboard" replace /> :
@@ -117,10 +100,8 @@ export default function App() {
     <Route path="/project/:projectId" element={card(<ProjectDetailsPage />)} />
     <Route path="/env-config" element={card(<EnvironmentConfigPage />)} />
     <Route path="/skill-pack" element={card(<SkillPackageInspector />)} />
-    <Route path="/starter" element={card(<TemplateSelector onGenerate={generateSpec} />)} />
-    <Route path="/specs" element={card(<SpecReviewer spec={spec}
-      onApprove={() => { setSpec(previous => ({ ...previous, status: 'APPROVED' })); navigate('/qa') }}
-      onRevise={feedback => setSpec(previous => ({ ...previous, status: 'CHANGES_REQUESTED', requirements: `${previous.requirements}\n\n## Revision Request\n- ${feedback}` }))} />)} />
+    <Route path="/starter" element={card(<TemplateSelectorPage />)} />
+    <Route path="/specs" element={card(<SpecReviewPage />)} />
     <Route path="/qa" element={card(<QACanvas key={projectId} runs={runs}
       nextRunNumber={Math.max(0, ...runs.map(run => run.run_number)) + 1}
       onRunComplete={run => setRuns(previous => [run, ...previous])} />)} />

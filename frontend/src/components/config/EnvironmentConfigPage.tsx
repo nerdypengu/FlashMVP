@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import { ShieldCheck, Server, Database, Key, Check, Save, Lock, RefreshCw, Layers } from 'lucide-react'
+import { ShieldCheck, Server, Database, Key, KeyRound, Check, Save, Lock, RefreshCw, Layers } from 'lucide-react'
+import SecretsModal from '../infra/SecretsModal'
+import { useSpecSession } from '../../context/SpecSessionContext'
+import { DEFAULT_PROJECT_ID } from '../../config'
 
 export default function EnvironmentConfigPage() {
   const [ibmApiKey, setIbmApiKey] = useState('●●●●●●●●●●●●●●●●-w9XkQ8Z-IBMCloudKey')
@@ -9,6 +12,8 @@ export default function EnvironmentConfigPage() {
   const [maxReplicas, setMaxReplicas] = useState(5)
   const [dbSchema, setDbSchema] = useState('app_8f92a')
   const [saved, setSaved] = useState(false)
+  const [secretsOpen, setSecretsOpen] = useState(false)
+  const { session } = useSpecSession()
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,6 +49,10 @@ export default function EnvironmentConfigPage() {
           </p>
         </div>
 
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <button type="button" className="btn btn--primary" onClick={() => setSecretsOpen(true)}>
+          <KeyRound size={15} /> Manage environment variables
+        </button>
         {saved && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8,
@@ -53,6 +62,7 @@ export default function EnvironmentConfigPage() {
             <Check size={16} /> Saved to .bob/settings/ibm-environment.json
           </div>
         )}
+        </div>
       </div>
 
       <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -224,6 +234,7 @@ export default function EnvironmentConfigPage() {
 
       </form>
 
+      <SecretsModal open={secretsOpen} projectId={session?.projectId ?? DEFAULT_PROJECT_ID} onClose={() => setSecretsOpen(false)} />
     </div>
   )
 }
