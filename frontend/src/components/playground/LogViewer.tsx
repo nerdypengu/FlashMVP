@@ -38,9 +38,10 @@ const LIVE_LINES: Record<string, string[]> = {
   ],
 }
 
-export default function LogViewer({ project, service }: { project?: Project; service?: string }) {
-  const [container, setContainer] = useState(service ?? (DEMO_MODE ? 'frontend' : ''))
-  const [logs, setLogs] = useState<string[]>(DEMO_MODE ? MOCK_LOGS['frontend'] : [])
+export default function LogViewer({ project, service, demoData = true }: { project?: Project; service?: string; demoData?: boolean }) {
+  const useDemoData = DEMO_MODE && demoData
+  const [container, setContainer] = useState(service ?? (useDemoData ? 'frontend' : ''))
+  const [logs, setLogs] = useState<string[]>(useDemoData ? MOCK_LOGS['frontend'] : [])
   const [services, setServices] = useState<ServiceRecord[]>([])
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
@@ -84,13 +85,13 @@ export default function LogViewer({ project, service }: { project?: Project; ser
 
   // Reset logs on container switch
   useEffect(() => {
-    if (!DEMO_MODE) return
+    if (!useDemoData) return
     setLogs((MOCK_LOGS[container] ?? []).map(line => `${new Date().toISOString()} ${line}`))
-  }, [container])
+  }, [container, useDemoData])
 
   // Simulate live SSE log stream
   useEffect(() => {
-    if (!DEMO_MODE) return
+    if (!useDemoData) return
     const lines = LIVE_LINES[container] ?? LIVE_LINES.frontend
     let i = 0
     const timer = setInterval(() => {
@@ -101,7 +102,7 @@ export default function LogViewer({ project, service }: { project?: Project; ser
       i++
     }, 1500)
     return () => clearInterval(timer)
-  }, [container])
+  }, [container, useDemoData])
 
   // Follow new logs inside the terminal without scrolling the page.
   useEffect(() => {
@@ -126,7 +127,7 @@ export default function LogViewer({ project, service }: { project?: Project; ser
             padding: '4px 10px', cursor: 'pointer',
           }}
         >
-          {DEMO_MODE ? <><option value="frontend">frontend</option><option value="backend">backend</option></> :
+          {useDemoData ? <><option value="frontend">frontend</option><option value="backend">backend</option></> :
             services.length ? services.map(service => <option key={service.service_type} value={service.service_type}>{service.service_type}</option>) :
             <option value="">No container configured</option>}
         </select>}
@@ -139,7 +140,7 @@ export default function LogViewer({ project, service }: { project?: Project; ser
         <button type="button" onClick={() => setPaused(paused ? null : [...logs])}>{paused ? 'Resume' : 'Pause'}</button>
         <label><input type="checkbox" checked={follow} onChange={e => setFollow(e.target.checked)} /> Auto-scroll</label>
         {!DEMO_MODE && <button type="button" disabled={!container} onClick={() => setRetry(n => n + 1)}>Reconnect</button>}
-        <span className="telemetry-note" role="status">{paused ? 'Paused view' : DEMO_MODE ? 'Demo logs' : connection} · {visible.length} shown</span>
+        <span className="telemetry-note" role="status">{paused ? 'Paused view' : useDemoData ? 'Demo logs' : DEMO_MODE ? 'Unavailable in demo mode' : connection} · {visible.length} shown</span>
       </div>
       <p className="telemetry-note">Latest 500 received entries. Severity is available only when provided by the application. Pause freezes the view while collection continues.</p>
       <div ref={logContainerRef} className="telemetry-panel telemetry-log-viewport" style={{
