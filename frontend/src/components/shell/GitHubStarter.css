@@ -1,0 +1,92 @@
+.github-starter {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid #343842;
+  border-radius: 12px;
+  min-width: 0;
+}
+.github-starter h2 {
+  margin: 0;
+  font-size: 17px;
+}
+.github-starter p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.github-starter fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.github-starter input:not([type="checkbox"]),
+.github-starter select,
+.github-starter textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  border: 1px solid #454b58;
+  border-radius: 6px;
+  background: #101216;
+  color: #eee;
+  font: inherit;
+}
+.github-starter textarea {
+  resize: vertical;
+}
+.github-starter label {
+  font-size: 13px;
+}
+.github-account,
+.github-private {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.github-account {
+  justify-content: space-between;
+}
+.github-starter a {
+  color: #8fc8ff;
+  overflow-wrap: anywhere;
+}
+.github-starter [role="alert"] {
+  color: #ffb4b4;
+}
+.github-starter button {
+  white-space: normal;
+}
+.github-integration {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #454b58;
+  border-radius: 8px;
+}
+.github-integration h3 {
+  margin: 0;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.github-connect-button,
+.github-connected {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.github-connected {
+  flex-wrap: wrap;
+  color: #86efac;
+}
+.github-starter button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

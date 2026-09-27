@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowRight, History, Lock, Package, Sparkles, Zap } from 'lucide-react'
 import TemplateCard from './TemplateCard'
 import WorkflowStepper from './WorkflowStepper'
+import GitHubStarter from './GitHubStarter'
 import { MAX_PROMPT_LENGTH, MIN_PROMPT_LENGTH, QUICK_PROMPTS, findTemplate, templates, type StarterTemplate } from '../../data/templates'
 import { useSpecSession } from '../../context/SpecSessionContext'
 import './TemplateSelectorPage.css'
@@ -18,7 +19,8 @@ export default function TemplateSelectorPage({ onGenerate }: {
 }) {
   const navigate = useNavigate()
   const { session, isLocked, startSession } = useSpecSession()
-  const [selectedId, setSelectedId] = useState(session?.templateId ?? templates[0].id)
+  const [selectedId, setSelectedId] = useState(() => findTemplate(
+    new URLSearchParams(window.location.search).get('github_template') ?? session?.templateId).id)
   const [prompt, setPrompt] = useState('')
   const [touched, setTouched] = useState(false)
   const promptRef = useRef<HTMLTextAreaElement>(null)
@@ -83,6 +85,8 @@ export default function TemplateSelectorPage({ onGenerate }: {
           ))}
         </div>
       </section>
+
+      <GitHubStarter templateId={selectedId} />
 
       <section className="ts-prompt" aria-labelledby={promptId}>
         <div className="ts-prompt-head">

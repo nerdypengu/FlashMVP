@@ -6,12 +6,10 @@ import {
   Square,
   Play,
   Trash2,
-  Bot,
-  Rocket,
   X,
 } from "lucide-react";
 import initialProjects from "../../mocks/projects_mock.json";
-import { TEMPLATES } from "../shell/TemplateSelector";
+import GitHubStarter from "../shell/GitHubStarter";
 import "./ProjectsDashboard.css";
 
 export interface Project {
@@ -50,15 +48,9 @@ export default function ProjectsDashboard() {
   >("ALL");
 
   // Modal state
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(() => new URLSearchParams(window.location.search).has('github'));
   const [isClosingModal, setIsClosingModal] = useState(false);
-  const [newProjectName, setNewProjectName] = useState("");
-  const [newProjectDesc, setNewProjectDesc] = useState("");
-  const [newRepoName, setNewRepoName] = useState("");
-  const [selectedTemplateId, setSelectedTemplateId] = useState(TEMPLATES[0].id);
-  const [isPrivateRepo, setIsPrivateRepo] = useState(true);
   const [isDeploying, setIsDeploying] = useState(false);
-  const [deployStep, setDeployStep] = useState(0);
 
   const handleOpenModal = () => {
     setIsModalOpen(true);
@@ -87,13 +79,6 @@ export default function ProjectsDashboard() {
     Record<string, "starting" | "stopping">
   >({});
   const [stopIcons, setStopIcons] = useState<Record<string, boolean>>({});
-
-  const deployStepsText = [
-    "Initializing GitHub repository via OAuth...",
-    "Injecting starter template & flashmvp.json manifest...",
-    "Registering IBM Bob 2.0 Environment Skills...",
-    "Provisioning IBM Cloud DB & Code Engine container fleet...",
-  ];
 
   // Filter projects
   const filteredProjects = projects.filter((p) => {
@@ -171,76 +156,6 @@ export default function ProjectsDashboard() {
     }
   };
 
-  // Handle project creation
-  const handleCreateProject = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newProjectName.trim()) return;
-
-    setIsDeploying(true);
-    setDeployStep(0);
-
-    // Simulate multi-step injection & deployment
-    const stepInterval = setInterval(() => {
-      setDeployStep((step) => {
-        if (step >= deployStepsText.length - 1) {
-          clearInterval(stepInterval);
-
-          // Finish creation
-          const chosenTemplate =
-            TEMPLATES.find((t) => t.id === selectedTemplateId) || TEMPLATES[0];
-          const createdRepo =
-            newRepoName.trim() ||
-            `ibmbob-dev/${newProjectName.toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
-          const id = `proj_${Math.random().toString(36).substring(2, 7)}`;
-
-          const newProj: Project = {
-            id,
-            name: newProjectName,
-            description:
-              newProjectDesc || "Created with IBM Bob 2.0 Environment Skills.",
-            repo: createdRepo,
-            repoUrl: `https://github.com/${createdRepo}`,
-            status: "RUNNING",
-            templateId: chosenTemplate.id,
-            templateName: `${chosenTemplate.name} (${chosenTemplate.description})`,
-            containers: 2,
-            previewUrl: `https://app-${id}.trycloudflare.com`,
-            containerUrl: `https://app-${id}.trycloudflare.com`,
-            backendUrl: `http://localhost:8001/docs`,
-            dbUrl: `https://supabase.com/dashboard/project/${id}`,
-            mcpUrl: `http://localhost:8001/mcp`,
-            region: "us-south (Dallas)",
-            cpuAllocated: "0.5 vCPU",
-            ramAllocated: "1024 MB",
-            dbSchema: `app_${id}`,
-            lastDeployed: "Just now",
-            commit: "c9f8e7d",
-            branch: "main",
-            ibmServices: [
-              "IBM Code Engine",
-              "IBM Cloud DB",
-              "watsonx QA",
-              "Secrets Manager",
-            ],
-          };
-
-          setProjects((prev) => [newProj, ...prev]);
-          setIsDeploying(false);
-          setIsClosingModal(true);
-          setTimeout(() => {
-            setIsModalOpen(false);
-            setIsClosingModal(false);
-            setNewProjectName("");
-            setNewProjectDesc("");
-            setNewRepoName("");
-          }, 230);
-          return 0;
-        }
-        return step + 1;
-      });
-    }, 700);
-  };
-
   const runningCount = projects.filter((p) => p.status === "RUNNING").length;
   const capacityPercent =
     projects.length > 0
@@ -287,275 +202,11 @@ export default function ProjectsDashboard() {
                 className={`dash-popover-card ${isClosingModal ? "is-closing" : ""}`}
               >
                 <span className="dash-popover-arrow" />
-                {isDeploying ? (
-                  /* Deployment Progress View */
-                  <div style={{ textAlign: "center", padding: "24px 0" }}>
-                    <div
-                      style={{
-                        width: 56,
-                        height: 56,
-                        margin: "0 auto 20px auto",
-                        borderRadius: "50%",
-                        background: "rgba(52, 211, 153, 0.12)",
-                        border: "2px solid #34d399",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Bot size={28} color="#34d399" />
-                    </div>
-                    <h3
-                      className="dash-modal-title"
-                      style={{ margin: "0 0 8px 0" }}
-                    >
-                      IBM Bob 2.0 Provisioning Fleet
-                    </h3>
-                    <p
-                      style={{
-                        color: "#38bdf8",
-                        fontSize: 13,
-                        margin: "0 0 24px 0",
-                        minHeight: 20,
-                      }}
-                    >
-                      {deployStepsText[deployStep]}
-                    </p>
-
-                    {/* Progress bar */}
-                    <div
-                      style={{
-                        height: 6,
-                        background: "#1c1f26",
-                        borderRadius: 4,
-                        overflow: "hidden",
-                        maxWidth: 360,
-                        margin: "0 auto",
-                      }}
-                    >
-                      <div
-                        style={{
-                          height: "100%",
-                          background: "#34d399",
-                          width: `${((deployStep + 1) / deployStepsText.length) * 100}%`,
-                          transition: "width 0.5s ease",
-                        }}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  /* Input Form View */
-                  <form
-                    onSubmit={handleCreateProject}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 18,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                        }}
-                      >
-                        <Rocket size={18} color="#34d399" />
-                        <h2 className="dash-modal-title">Create New Project</h2>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleCloseModal}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: "#7e8490",
-                          cursor: "pointer",
-                          padding: 4,
-                        }}
-                      >
-                        <X size={18} />
-                      </button>
-                    </div>
-
-                    <div>
-                      <label
-                        style={{
-                          display: "block",
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: "#d1d5db",
-                          marginBottom: 6,
-                        }}
-                      >
-                        Project Name *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. Payments Microservice"
-                        value={newProjectName}
-                        onChange={(e) => setNewProjectName(e.target.value)}
-                        className="dash-modal-input"
-                      />
-                    </div>
-
-                    <div>
-                      <label
-                        style={{
-                          display: "block",
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: "#d1d5db",
-                          marginBottom: 6,
-                        }}
-                      >
-                        Target GitHub Repository (OAuth Linked)
-                      </label>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: 13,
-                            color: "#626773",
-                            fontFamily: "monospace",
-                          }}
-                        >
-                          github.com/ibmbob-dev/
-                        </span>
-                        <input
-                          type="text"
-                          placeholder={
-                            newProjectName
-                              ? newProjectName
-                                  .toLowerCase()
-                                  .replace(/[^a-z0-9]/g, "-")
-                              : "repo-name"
-                          }
-                          value={newRepoName}
-                          onChange={(e) => setNewRepoName(e.target.value)}
-                          className="dash-modal-input"
-                          style={{ flex: 1, fontFamily: "monospace" }}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label
-                        style={{
-                          display: "block",
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: "#d1d5db",
-                          marginBottom: 6,
-                        }}
-                      >
-                        Starter Template
-                      </label>
-                      <select
-                        value={selectedTemplateId}
-                        onChange={(e) => setSelectedTemplateId(e.target.value)}
-                        className="dash-modal-input"
-                        style={{ background: "#0f1013" }}
-                      >
-                        {TEMPLATES.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.name} — {t.description}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label
-                        style={{
-                          display: "block",
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: "#d1d5db",
-                          marginBottom: 6,
-                        }}
-                      >
-                        Description
-                      </label>
-                      <textarea
-                        rows={2}
-                        placeholder="Brief summary of your application..."
-                        value={newProjectDesc}
-                        onChange={(e) => setNewProjectDesc(e.target.value)}
-                        className="dash-modal-input"
-                        style={{ resize: "vertical" }}
-                      />
-                    </div>
-
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 10 }}
-                    >
-                      <input
-                        type="checkbox"
-                        id="private-repo-check"
-                        checked={isPrivateRepo}
-                        onChange={(e) => setIsPrivateRepo(e.target.checked)}
-                        style={{
-                          accentColor: "#34d399",
-                          width: 16,
-                          height: 16,
-                          cursor: "pointer",
-                        }}
-                      />
-                      <label
-                        htmlFor="private-repo-check"
-                        style={{
-                          fontSize: 13,
-                          color: "#9ca3af",
-                          cursor: "pointer",
-                        }}
-                      >
-                        Create as Private GitHub Repository
-                      </label>
-                    </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 10,
-                        justifyContent: "flex-end",
-                        marginTop: 8,
-                      }}
-                    >
-                      <button
-                        type="button"
-                        onClick={handleCloseModal}
-                        style={{
-                          padding: "9px 16px",
-                          borderRadius: 9999,
-                          border: "1px solid #282c35",
-                          background: "transparent",
-                          color: "#9ca3af",
-                          fontSize: 13,
-                          cursor: "pointer",
-                        }}
-                      >
-                        Cancel
-                      </button>
-                      <button type="submit" className="dash-create-btn">
-                        Create &amp; Inject Repo
-                      </button>
-                    </div>
-                  </form>
-                )}
+                <button type="button" className="btn btn--ghost" onClick={handleCloseModal}
+                  disabled={isDeploying} aria-label="Close create repository">
+                  <X size={18} />
+                </button>
+                <GitHubStarter onBusyChange={setIsDeploying} />
               </div>
             </>
           )}
