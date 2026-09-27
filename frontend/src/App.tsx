@@ -1,4 +1,4 @@
-import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useState } from "react";
 import {
   Navigate,
   Route,
@@ -11,11 +11,9 @@ import { Zap } from "lucide-react";
 import QACanvas from "./components/qa/QACanvas";
 import RunHistoryTable, { type Run } from "./components/qa/RunHistoryTable";
 import PlaygroundWindow from "./components/playground/PlaygroundWindow";
-import TemplateSelector, {
-  TEMPLATES,
-  type Template,
-} from "./components/shell/TemplateSelector";
-import SpecReviewer, { type SpecData } from "./components/sdd/SpecReviewer";
+import TelemetryCharts from "./components/telemetry/TelemetryCharts";
+import TemplateSelectorPage from "./components/shell/TemplateSelectorPage";
+import SpecReviewPage from "./components/sdd/SpecReviewPage";
 import AppCatalog from "./components/portal/AppCatalog";
 import ProjectsDashboard from "./components/dashboard/ProjectsDashboard";
 import ProjectDetailsPage from "./components/dashboard/ProjectDetailsPage";
@@ -28,7 +26,7 @@ import RequireAuth from "./components/auth/RequireAuth";
 import DashboardLayout from "./components/shell/DashboardLayout";
 import BinaryCanvasBackground from "./components/ui/BinaryCanvasBackground";
 import { useAuth } from "./context/AuthContext";
-import demoProjects from "./mocks/projects_mock.json";
+import mockData from "./mocks/qa_mock.json";
 import {
   DEMO_MODE,
   errorMessage,
@@ -36,32 +34,6 @@ import {
   loadRuns,
   type Project,
 } from "./lib/person2Data";
-
-const DEFAULT_SPEC: SpecData = {
-  projectId: "proj_8f92a",
-  template: TEMPLATES[0],
-  prompt: "E-commerce store with Supabase auth & Stripe checkout",
-  status: "DRAFT",
-  requirements:
-    "# FlashStore\n\nBuyers browse products and check out; admins manage inventory.",
-  architecture: "React frontend → FastAPI backend → PostgreSQL",
-  ibmBindings: [
-    {
-      tool: "IBM Code Engine",
-      purpose: "Container deployment",
-      status: "Ready",
-    },
-    { tool: "IBM Cloud DB", purpose: "PostgreSQL", status: "Ready" },
-  ],
-  tasks: [
-    {
-      id: "TSK-01",
-      title: "Provision the application",
-      subagent: "Bob",
-      estimate: "Pending",
-    },
-  ],
-};
 
 function ProjectTelemetry({ project }: { project?: Project }) {
   const { projectId } = useParams();
@@ -164,22 +136,16 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const [runsByProject, setRunsByProject] = useState<Record<string, Run[]>>({});
+  const [runs, setRuns] = useState<Run[]>(DEMO_MODE ? mockData.runs : []);
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectId, setProjectId] = useState("");
   const [dataLoading, setDataLoading] = useState(false);
   const [dataError, setDataError] = useState("");
   const [reload, setReload] = useState(0);
-  const [spec, setSpec] = useState<SpecData>(DEFAULT_SPEC);
   const project = projects.find((item) => item.id === projectId);
-  const scopedProjectId = location.pathname.startsWith("/project/")
-    ? location.pathname.split("/")[2]
-    : undefined;
-  const scopedProject = projects.find(
-    (item) =>
-      item.project_id === scopedProjectId || item.id === scopedProjectId,
+  const projectPage = ["/qa", "/history", "/playground", "/telemetry"].includes(
+    location.pathname,
   );
-  const projectPage = ["/playground", "/telemetry"].includes(location.pathname);
 
   useEffect(() => {
     if (DEMO_MODE) return;
@@ -283,234 +249,105 @@ export default function App() {
     dashboard(
       <div className="workspace-card glass-card page-enter">{content}</div>,
     );
-  const workflowProps = {
-    projects,
-    runsByProject,
-    setRunsByProject,
-    loadingProjects: dataLoading,
-    projectError: dataError,
-  };
-  const legacyProjectId = DEMO_MODE ? demoProjects[0]?.id : project?.project_id;
-  const generateSpec = (template: Template, prompt: string) => {
-    setSpec((previous) => ({
-      ...previous,
-      projectId: scopedProjectId ?? previous.projectId,
-      template,
-      prompt,
-      status: "DRAFT",
-    }));
-    navigate(scopedProjectId ? `/project/${scopedProjectId}/specs` : "/specs");
-  };
 
   return (
     <Routes>
       <Route
         path="/"
         element={
-          <div className="app-shell">
-            <BinaryCanvasBackground />
-            <div className="page">
-              <header className="header">
-                <button
-                  type="button"
-                  className="logo-btn"
-                  onClick={() => navigate("/")}
-                  title="FlashMVP — Home"
-                >
-                  <img
-                    src="/assets/logo.webp"
-                    alt="FlashMVP"
-                    width="52"
-                    height="52"
-                  />
-                </button>
-                <nav className="nav-pill" aria-label="Main Navigation">
-                  <button type="button" className="nav-link active">
-                    Home
+          user ? (
+            <Navigate to="/dashboard" replace />
+          ) : (
+            <div className="app-shell">
+              <BinaryCanvasBackground />
+              <div className="page">
+                <header className="header">
+                  <button
+                    type="button"
+                    className="logo-btn"
+                    onClick={() => navigate("/")}
+                    title="FlashMVP — Home"
+                  >
+                    <img
+                      src="/assets/logo.webp"
+                      alt="FlashMVP"
+                      width="52"
+                      height="52"
+                    />
                   </button>
-                </nav>
-                <button
-                  type="button"
-                  className="sign-in-btn"
-                  onClick={() => navigate(user ? "/dashboard" : "/login")}
-                >
-                  <Zap size={14} /> {user ? "Dashboard" : "Sign In"}
-                </button>
-              </header>
-              <main className="hero-workspace">
-                <LandingHomePage />
-              </main>
+                  <nav className="nav-pill" aria-label="Main Navigation">
+                    <button type="button" className="nav-link active">
+                      Home
+                    </button>
+                  </nav>
+                  <button
+                    type="button"
+                    className="sign-in-btn"
+                    onClick={() => navigate("/login")}
+                  >
+                    <Zap size={14} /> Sign In
+                  </button>
+                </header>
+                <main className="hero-workspace">
+                  <LandingHomePage />
+                </main>
+              </div>
             </div>
-          </div>
+          )
         }
       />
       <Route
         path="/login"
         element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />}
       />
-      <Route path="/dashboard" element={dashboard(<ProjectsDashboard />)} />
+      <Route path="/dashboard" element={card(<ProjectsDashboard />)} />
       <Route
         path="/project/:projectId/details"
-        element={dashboard(<ProjectDetailsPage />)}
+        element={card(<ProjectDetailsPage />)}
       />
       <Route
         path="/project/:projectId/telemetry"
-        element={card(<ProjectTelemetry project={scopedProject} />)}
-      />
-      <Route
-        path="/project/:projectId/qa"
-        element={card(<ProjectWorkflow {...workflowProps} view="qa" />)}
-      />
-      <Route
-        path="/project/:projectId/history"
-        element={card(<ProjectWorkflow {...workflowProps} view="history" />)}
-      />
-      <Route
-        path="/project/:projectId/playground"
         element={card(
-          DEMO_MODE && scopedProjectId !== demoProjects[0]?.id ? (
-            <p>Playground demo is not configured for this project.</p>
-          ) : (
-            <PlaygroundWindow key={scopedProjectId} project={scopedProject} />
-          ),
-        )}
-      />
-      <Route
-        path="/project/:projectId/starter"
-        element={card(<TemplateSelector onGenerate={generateSpec} />)}
-      />
-      <Route
-        path="/project/:projectId/specs"
-        element={card(
-          <SpecReviewer
-            spec={{ ...spec, projectId: scopedProjectId ?? spec.projectId }}
-            onApprove={() => {
-              setSpec((previous) => ({ ...previous, status: "APPROVED" }));
-              navigate(`/project/${scopedProjectId}/qa`);
-            }}
-            onRevise={(feedback) =>
-              setSpec((previous) => ({
-                ...previous,
-                status: "CHANGES_REQUESTED",
-                requirements: `${previous.requirements}\n\n## Revision Request\n- ${feedback}`,
-              }))
-            }
-          />,
-        )}
-      />
-      <Route
-        path="/project/:projectId/skill-pack"
-        element={card(
-          <SkillPackageInspector
-            key={scopedProjectId}
-            repository={
-              demoProjects.find((item) => item.id === scopedProjectId)?.repo ??
-              ""
-            }
-          />,
-        )}
-      />
-      <Route
-        path="/project/:projectId/hub"
-        element={card(
-          <AppCatalog
-            onOpenPlayground={() =>
-              navigate(`/project/${scopedProjectId}/playground`)
-            }
-          />,
-        )}
-      />
-      <Route
-        path="/project/:projectId/env-config"
-        element={card(
-          <EnvironmentConfigPage
-            key={scopedProjectId}
-            dbSchema={
-              scopedProject?.db_schema ??
-              demoProjects.find((item) => item.id === scopedProjectId)
-                ?.dbSchema ??
-              "Not configured"
-            }
+          <ProjectTelemetry
+            project={projects.find(
+              (item) => item.project_id === location.pathname.split("/")[2],
+            )}
           />,
         )}
       />
       <Route
         path="/project/:projectId"
-        element={dashboard(<ProjectDetailsPage />)}
+        element={card(<ProjectDetailsPage />)}
       />
       <Route path="/env-config" element={card(<EnvironmentConfigPage />)} />
       <Route path="/skill-pack" element={card(<SkillPackageInspector />)} />
+      <Route path="/starter" element={card(<TemplateSelectorPage />)} />
+      <Route path="/specs" element={card(<SpecReviewPage />)} />
       <Route
-        path="/starter"
-        element={card(<TemplateSelector onGenerate={generateSpec} />)}
-      />
-      <Route
-        path="/specs"
+        path="/qa"
         element={card(
-          <SpecReviewer
-            spec={spec}
-            onApprove={() => {
-              setSpec((previous) => ({ ...previous, status: "APPROVED" }));
-              navigate(`/project/${spec.projectId}/qa`);
-            }}
-            onRevise={(feedback) =>
-              setSpec((previous) => ({
-                ...previous,
-                status: "CHANGES_REQUESTED",
-                requirements: `${previous.requirements}\n\n## Revision Request\n- ${feedback}`,
-              }))
+          <QACanvas
+            key={projectId}
+            runs={runs}
+            nextRunNumber={
+              Math.max(0, ...runs.map((run) => run.run_number)) + 1
             }
+            onRunComplete={(run) => setRuns((previous) => [run, ...previous])}
           />,
         )}
       />
-      <Route
-        path="/qa"
-        element={
-          dataLoading ? (
-            card(<p role="status">Loading projects…</p>)
-          ) : legacyProjectId ? (
-            <RequireAuth>
-              <Navigate to={`/project/${legacyProjectId}/qa`} replace />
-            </RequireAuth>
-          ) : (
-            card(<p>No accessible projects.</p>)
-          )
-        }
-      />
-      <Route
-        path="/history"
-        element={
-          dataLoading ? (
-            card(<p role="status">Loading projects…</p>)
-          ) : legacyProjectId ? (
-            <RequireAuth>
-              <Navigate to={`/project/${legacyProjectId}/history`} replace />
-            </RequireAuth>
-          ) : (
-            card(<p>No accessible projects.</p>)
-          )
-        }
-      />
+      <Route path="/history" element={card(<RunHistoryTable runs={runs} />)} />
       <Route
         path="/playground"
         element={card(<PlaygroundWindow key={projectId} project={project} />)}
       />
       <Route
         path="/telemetry"
-        element={
-          dataLoading ? (
-            card(<p role="status">Loading projects…</p>)
-          ) : !DEMO_MODE && !project ? (
-            card(<p>{dataError || "No project data is available."}</p>)
-          ) : (
-            <RequireAuth>
-              <Navigate
-                to={`/project/${project?.project_id || "proj_8f92a"}/telemetry`}
-                replace
-              />
-            </RequireAuth>
-          )
-        }
+        element={card(
+          <div className="telemetry-layout">
+            <TelemetryCharts key={projectId} project={project} />
+          </div>,
+        )}
       />
       <Route
         path="/hub"
