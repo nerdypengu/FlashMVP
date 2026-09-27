@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { Check, LoaderCircle } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabaseClient'
-import { API_URL } from '../../lib/person2Data'
-import { templates } from '../../data/templates'
+import { API_URL, DEMO_MODE } from '../../lib/person2Data'
+import { templates, findTemplate } from '../../data/templates'
 import './GitHubStarter.css'
 
 type Connection = { configured: boolean; connected: boolean; login?: string; configuration_error?: string }
@@ -67,6 +67,10 @@ export default function GitHubStarter({ templateId, onBusyChange, onCreated }: {
   useEffect(() => {
     const controller = new AbortController()
     setConnection(null); setResult(null); setError(''); setPartialUrl('')
+    if (DEMO_MODE) {
+      setConnection({ configured: true, connected: true, login: 'ibmbob-demo-user' })
+      return
+    }
     const params = new URLSearchParams(window.location.search)
     api('/connection', 'GET', undefined, controller.signal).then(status => {
       if (controller.signal.aborted) return
@@ -74,7 +78,13 @@ export default function GitHubStarter({ templateId, onBusyChange, onCreated }: {
       if (!status.connected && params.get('github') === 'error')
         setError(oauthErrors[params.get('github_error') ?? ''] ?? 'GitHub connection failed. Click Connect GitHub again to get the specific error.')
     }).catch(error => {
-      if (!controller.signal.aborted) setError(error instanceof Error ? error.message : 'Could not load GitHub connection.')
+      if (!controller.signal.aborted) {
+        if (DEMO_MODE) {
+          setConnection({ configured: true, connected: true, login: 'ibmbob-demo-user' })
+        } else {
+          setError(error instanceof Error ? error.message : 'Could not load GitHub connection.')
+        }
+      }
     })
     return () => controller.abort()
   }, [user?.id])
@@ -98,8 +108,53 @@ export default function GitHubStarter({ templateId, onBusyChange, onCreated }: {
   return <section className="github-starter" aria-labelledby={`${id}-title`} aria-busy={busy}>
     <h2 id={`${id}-title`}>Create project</h2>
     <p>Choose your starter, authorize GitHub, then create your project with the starter files in your repository.</p>
-    {!connection && !error && <p role="status">Loading GitHub connection…</p>}
+    {!connection && !error && !DEMO_MODE && <p role="status">Loading GitHub connection…</p>}
       <form onSubmit={event => { event.preventDefault(); void run(async () => {
+        if (DEMO_MODE) {
+          setResult(null)
+          await new Promise(resolve => setTimeout(resolve, 600))
+          const templateObj = findTemplate(draft.template || templateId || 'react-fastapi')
+          const projectName = draft.name.trim() || 'My FlashMVP App'
+          const slug = projectName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo-app'
+          const newProj = {
+            id: `proj_${Math.random().toString(36).substring(2, 7)}`,
+            name: projectName,
+            description: draft.description.trim() || 'Autonomous cloud application created with IBM Bob 2.0 & watsonx.',
+            repo: `ibmbob-dev/${slug}`,
+            repoUrl: `https://github.com/ibmbob-dev/${slug}`,
+            status: 'STOPPED' as const,
+            templateId: draft.template || templateId || 'react-fastapi',
+            templateName: templateObj.name,
+            containers: 1,
+            previewUrl: `https://${slug}.trycloudflare.com`,
+            containerUrl: `https://${slug}.trycloudflare.com`,
+            backendUrl: 'http://localhost:8001/docs',
+            dbUrl: 'https://cloud.ibm.com/databases',
+            mcpUrl: 'http://localhost:8001/mcp',
+            region: 'us-south (Dallas)',
+            cpuAllocated: '0.5 vCPU',
+            ramAllocated: '1024 MB',
+            dbSchema: `app_${Math.random().toString(36).substring(2, 7)}`,
+            lastDeployed: 'Just now',
+            commit: 'a1b2c3d',
+            branch: 'main',
+            ibmServices: ['IBM Code Engine', 'IBM Cloud DB', 'watsonx QA']
+          }
+
+          const existing = JSON.parse(localStorage.getItem('flashmvp_demo_projects') || '[]')
+          localStorage.setItem('flashmvp_demo_projects', JSON.stringify([newProj, ...existing]))
+
+          setResult({
+            repo_url: newProj.repoUrl,
+            branch: newProj.branch,
+            commit_sha: 'a1b2c3d4e5f'
+          })
+          sessionStorage.removeItem(DRAFT_KEY)
+          if (onCreated) await onCreated()
+          else navigate(`/project/${newProj.id}/details`)
+          return
+        }
+
         if (!connection?.connected) return
         setResult(null)
         const published = await api('/repositories', 'POST', { ...draft, template: templateId ?? draft.template })
@@ -124,7 +179,9 @@ export default function GitHubStarter({ templateId, onBusyChange, onCreated }: {
             onChange={e => setDraft({ ...draft, private: e.target.checked })} /> Private repository</label>
           <div className="github-integration">
             <h3><i className="fa-brands fa-github" aria-hidden="true" /> GitHub</h3>
-            {connection?.connected ? <div className="github-account">
+            {DEMO_MODE ? <div className="github-account">
+              <span className="github-connected"><Check size={16} aria-hidden="true" /> Connected as <strong>ibmbob-demo-user</strong> (Demo Mode)</span>
+            </div> : connection?.connected ? <div className="github-account">
               <span className="github-connected"><Check size={16} aria-hidden="true" /> Connected as <strong>{connection.login}</strong></span>
               <button className="btn btn--ghost" type="button" onClick={() => run(async () => {
                 await api('/connection', 'DELETE')
@@ -138,13 +195,13 @@ export default function GitHubStarter({ templateId, onBusyChange, onCreated }: {
                 {busy ? 'Connecting…' : 'Connect GitHub'}
               </button>
             </>}
-            {connection && !connection.configured && <p role="status">GitHub sign-in is not ready on this server. Your project details can still be filled in.</p>}
-            {(!connection || !connection.configured) && <button type="button" className="btn btn--ghost" onClick={() => run(async () => {
+            {connection && !connection.configured && !DEMO_MODE && <p role="status">GitHub sign-in is not ready on this server. Your project details can still be filled in.</p>}
+            {(!connection || !connection.configured) && !DEMO_MODE && <button type="button" className="btn btn--ghost" onClick={() => run(async () => {
               setConnection(await api('/connection'))
             })}>Check connection again</button>}
           </div>
-          <button type="submit" className="btn btn--primary" disabled={busy || !connection?.connected || !!result || !!partialUrl}>
-            {busy && connection?.connected ? 'Creating project…' : 'Create project & publish starter'}
+          <button type="submit" className="btn btn--primary" disabled={busy || (!DEMO_MODE && !connection?.connected) || !!result || !!partialUrl}>
+            {busy ? 'Creating project…' : 'Create project & publish starter'}
           </button>
         </fieldset>
       </form>

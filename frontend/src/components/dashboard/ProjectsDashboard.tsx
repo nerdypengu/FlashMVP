@@ -34,38 +34,62 @@ export interface Project {
   ibmServices: string[];
 }
 
+function getStoredDemoProjects(): Project[] {
+  try {
+    return JSON.parse(localStorage.getItem('flashmvp_demo_projects') || '[]');
+  } catch {
+    return [];
+  }
+}
+
 export default function ProjectsDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [projectError, setProjectError] = useState("");
   const [projects, setProjects] = useState<Project[]>(
-    DEMO_MODE ? initialProjects as Project[] : [],
+    DEMO_MODE ? [...getStoredDemoProjects(), ...(initialProjects as Project[])] : getStoredDemoProjects(),
   );
   async function fetchProjects(signal?: AbortSignal) {
-    const token = (await supabase?.auth.getSession())?.data.session?.access_token;
-    const response = await fetch(`${API_URL}/api/v1/github/projects`, {
-      credentials: "include", signal,
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (!response.ok) throw new Error("Could not load your projects. Please reload the dashboard.");
-    const published = await response.json();
-    if (signal?.aborted) return;
-    const created: Project[] = published.map((repo: { id: string; name: string; description: string; full_name: string; repo_url: string; template: string; branch: string; commit_sha: string }) => ({
-      id: repo.id, name: repo.name, description: repo.description,
-      repo: repo.full_name, repoUrl: repo.repo_url, status: "STOPPED",
-      templateId: repo.template, templateName: findTemplate(repo.template).name,
-      containers: 0, previewUrl: "", lastDeployed: "Not deployed",
-      commit: repo.commit_sha.slice(0, 7), branch: repo.branch, ibmServices: [],
-      cpuAllocated: "Unavailable", ramAllocated: "Unavailable", dbSchema: "Not provisioned",
-    }));
-    setProjects([...created, ...(DEMO_MODE ? initialProjects as Project[] : [])]);
-    setProjectError("");
+    try {
+      const token = (await supabase?.auth.getSession())?.data.session?.access_token;
+      const response = await fetch(`${API_URL}/api/v1/github/projects`, {
+        credentials: "include", signal,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) throw new Error("Could not load your projects. Please reload the dashboard.");
+      const published = await response.json();
+      if (signal?.aborted) return;
+      const created: Project[] = published.map((repo: { id: string; name: string; description: string; full_name: string; repo_url: string; template: string; branch: string; commit_sha: string }) => ({
+        id: repo.id, name: repo.name, description: repo.description,
+        repo: repo.full_name, repoUrl: repo.repo_url, status: "STOPPED",
+        templateId: repo.template, templateName: findTemplate(repo.template).name,
+        containers: 0, previewUrl: "", lastDeployed: "Not deployed",
+        commit: repo.commit_sha.slice(0, 7), branch: repo.branch, ibmServices: [],
+        cpuAllocated: "Unavailable", ramAllocated: "Unavailable", dbSchema: "Not provisioned",
+      }));
+      setProjects([...getStoredDemoProjects(), ...created, ...(DEMO_MODE ? initialProjects as Project[] : [])]);
+      setProjectError("");
+    } catch (error: any) {
+      if (signal?.aborted) return;
+      if (DEMO_MODE) {
+        setProjects([...getStoredDemoProjects(), ...(initialProjects as Project[])]);
+        setProjectError("");
+      } else {
+        setProjectError(error.message);
+      }
+    }
   }
   useEffect(() => {
     const controller = new AbortController();
-    setProjects(DEMO_MODE ? initialProjects as Project[] : []);
+    setProjects(DEMO_MODE ? [...getStoredDemoProjects(), ...(initialProjects as Project[])] : getStoredDemoProjects());
     fetchProjects(controller.signal).catch(error => {
-      if (!controller.signal.aborted) setProjectError(error.message);
+      if (!controller.signal.aborted) {
+        if (DEMO_MODE) {
+          setProjects([...getStoredDemoProjects(), ...(initialProjects as Project[])]);
+        } else {
+          setProjectError(error.message);
+        }
+      }
     });
     return () => controller.abort();
   }, [user?.id]);
