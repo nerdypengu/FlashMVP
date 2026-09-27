@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
-  Crown,
   FileText,
   FlaskConical,
   LogOut,
@@ -18,8 +17,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navigate = useNavigate()
   const location = useLocation()
   const { projectId } = useParams()
-  const { user, role, signOut } = useAuth()
-  const [collapsed, setCollapsed] = useState(false)
+  const { user, signOut } = useAuth()
+  const [collapsed] = useState(false)
   const activeProjectId = projectId || "proj_8f92a"
   const isProjectView = location.pathname.startsWith('/project/') ||
     ['/qa', '/telemetry', '/env-config', '/specs'].includes(location.pathname)
@@ -36,53 +35,41 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', position: 'relative' }}>
       <BinaryCanvasBackground />
       {isProjectView && (
-        <>
-          <button
-            type="button"
-            className="sidebar-toggle"
-            style={{ left: collapsed ? 64 : 220 }}
-            onClick={() => setCollapsed(value => !value)}
-            aria-controls="dashboard-sidebar"
-            aria-expanded={!collapsed}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            <ArrowLeft size={16} style={{ transform: collapsed ? 'rotate(180deg)' : undefined }} />
-          </button>
-          <aside
-            id="dashboard-sidebar"
-            className={`dashboard-sidebar${collapsed ? ' is-collapsed' : ''}`}
-            style={{
-              position: 'relative',
-              zIndex: 20,
-              width: collapsed ? 64 : 220,
-              minWidth: collapsed ? 64 : 220,
-              display: 'flex',
-              flexDirection: 'column',
-              background: 'rgba(8,8,14,.92)',
-              borderRight: '1px solid rgba(255,255,255,.07)',
-              overflow: 'hidden',
-            }}
-          >
-            <div style={{ padding: '18px 14px', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
-              <button type="button" className="sidebar-brand" onClick={() => navigate('/dashboard')} aria-label="Back to Projects">
-                <span className="sidebar-brand-mark" aria-hidden="true"><FileText size={22} /></span>
-                <span className="sidebar-brand-name sidebar-label" aria-hidden={collapsed}>Flash<span>MVP</span></span>
-              </button>
-            </div>
-            <nav aria-label="Project navigation" style={{ flex: 1, overflowY: 'auto', padding: '10px 8px' }}>
-              <button
-                type="button"
-                className="sidebar-brand"
-                onClick={() => navigate('/dashboard')}
-                title="Back to Projects"
-                style={{ padding: '10px', color: '#60A5FA', width: '100%', display: 'flex', alignItems: 'center', gap: 8 }}
-              >
-                <ArrowLeft size={16} />
-                <span className="sidebar-label" aria-hidden={collapsed}>
-                  Back to Projects
-                </span>
-              </button>
-              {items.map((item) => {
+        <aside
+          id="dashboard-sidebar"
+          className="dashboard-sidebar"
+          style={{
+            position: 'relative',
+            zIndex: 20,
+            width: 220,
+            minWidth: 220,
+            display: 'flex',
+            flexDirection: 'column',
+            background: 'rgba(8,8,14,.92)',
+            borderRight: '1px solid rgba(255,255,255,.07)',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ padding: '18px 14px', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
+            <button type="button" className="sidebar-brand" onClick={() => navigate('/dashboard')} aria-label="FlashMVP">
+              <span className="sidebar-brand-mark" aria-hidden="true"><FileText size={22} /></span>
+              <span className="sidebar-brand-name sidebar-label">Flash<span>MVP</span></span>
+            </button>
+          </div>
+          <nav aria-label="Project navigation" style={{ flex: 1, overflowY: 'auto', padding: '10px 8px' }}>
+            <button
+              type="button"
+              className="sidebar-brand"
+              onClick={() => navigate('/dashboard')}
+              title="Back to Projects"
+              style={{ padding: '10px', color: '#60A5FA', width: '100%', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}
+            >
+              <ArrowLeft size={16} />
+              <span className="sidebar-label">
+                Back to Projects
+              </span>
+            </button>
+            {items.map((item) => {
                 const active = location.pathname === item.path ||
                   (item.path.includes('/details') && location.pathname === `/project/${projectId}`)
                 const Icon = item.icon
@@ -118,8 +105,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               })}
             </nav>
           </aside>
-        </>
-      )}
+        )}
       <main
         style={{
           flex: 1,
@@ -158,7 +144,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </span>
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {role === 'admin' ? <Crown size={14} /> : <User size={14} />}
+            <User size={14} />
             <span style={{ fontSize: 12 }}>{user?.email ?? ''}</span>
             <button
               type="button"

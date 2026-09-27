@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Zap, Globe, Code2, Database, Plug, Radio, FlaskConical, Cpu, GitBranch, Check, ExternalLink, Copy, Layers } from 'lucide-react'
+import { Zap, Globe, Code2, Database, Plug, Radio, FlaskConical, Cpu, GitBranch, Check, ExternalLink, Copy, Layers } from 'lucide-react'
 import projectsMock from '../../mocks/projects_mock.json'
 import TemplateSelectorPage from '../shell/TemplateSelectorPage'
 import './ProjectDetailsPage.css'
@@ -108,10 +108,6 @@ export default function ProjectDetailsPage() {
 
   return (
     <div className="project-details-page">
-      <button type="button" className="project-details-back" onClick={() => navigate('/dashboard')}>
-        <ArrowLeft size={14} aria-hidden="true" /> Back to Projects
-      </button>
-
       {/* Hero Header */}
       <header className="project-details-hero">
         <div className="project-details-identity">

@@ -29,7 +29,10 @@
   margin-bottom: 10px;
 }
 .qa-canvas-title {
-  font: normal 28px/1.15 Georgia, 'Times New Roman', serif;
+  font-size: 28px;
+  line-height: 1.15;
+  font-family: var(--font-sans);
+  font-weight: 700;
   letter-spacing: -0.045em;
 }
 .qa-canvas-subtitle {
@@ -47,7 +50,10 @@
   margin-bottom: 12px;
 }
 .qa-section-heading h2 {
-  font: normal 20px/1.2 Georgia, 'Times New Roman', serif;
+  font-size: 20px;
+  line-height: 1.2;
+  font-family: var(--font-sans);
+  font-weight: 700;
   letter-spacing: -0.035em;
 }
 .qa-section-heading p { font-size: 13px; color: #aaa8a5; margin-top: 6px; }
