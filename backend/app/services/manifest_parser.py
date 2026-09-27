@@ -10,6 +10,7 @@ import os
 from app.schemas.manifest import (
     IBMBindings,
     ParsedManifest,
+    QAPipelineStage,
     QAPipelineStep,
     ServiceDefinition,
 )
@@ -26,13 +27,9 @@ MOCK_MANIFEST = ParsedManifest(
         ServiceDefinition(name="backend", dockerfile="Dockerfile.backend", port=8000),
     ],
     qa_pipeline=[
-        QAPipelineStep(id="lint", name="ESLint", command="npm run lint"),
-        QAPipelineStep(id="test", name="Pytest", command="pytest"),
-        QAPipelineStep(
-            id="security",
-            name="IBM Watsonx Security Scan",
-            command="bob skill watsonx-qa --scan",
-        ),
+        QAPipelineStage(stage="Unit Tests", files=["backend/tests/test_*.py"]),
+        QAPipelineStage(stage="Integration Tests", files=["backend/tests/integration/test_*.py"]),
+        QAPipelineStage(stage="E2E Tests", files=["frontend/e2e/*.spec.ts"]),
     ],
     status="VALID",
 )
@@ -84,6 +81,9 @@ def parse_manifest(project_id: str, manifest_path: str = "") -> ParsedManifest:
         template=raw.get("template", "react-fastapi"),
         ibm_bindings=IBMBindings(**raw.get("ibm_bindings", {})),
         services=[ServiceDefinition(**s) for s in raw.get("services", [])],
-        qa_pipeline=[QAPipelineStep(**q) for q in raw.get("qa_pipeline", [])],
+        qa_pipeline=[
+            QAPipelineStage(**step) if "stage" in step else QAPipelineStep(**step)
+            for step in raw.get("qa_pipeline", [])
+        ],
         status="VALID",
     )

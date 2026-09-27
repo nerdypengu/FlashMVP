@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Bot, FileCode, History, Layers } from 'lucide-react'
 import mockData from '../../mocks/qa_mock.json'
-import { DEMO_MODE } from '../../lib/person2Data'
+import { API_URL, DEMO_MODE, errorMessage, runRecordToRun } from '../../lib/person2Data'
 import QANodeCard from './QANodeCard'
 import QAConnector from './QAConnector'
 import ContextMenu from './ContextMenu'
@@ -13,17 +14,32 @@ import './QACanvas.css'
 
 type NodeStatus = 'PENDING' | 'RUNNING' | 'PASSED' | 'FAILED' | 'SKIPPED'
 type Step = {
-  id: string; name: string; command: string; durationMs: number; enabled: boolean
-  status: NodeStatus; stage: string; elapsed?: number; logOutput?: string
+  id: string; stage: string; name: string; file?: string; command?: string; enabled: boolean;
+  durationMs: number; status: NodeStatus; logOutput?: string
 }
-type Props = { runs: Run[]; nextRunNumber: number; onRunComplete: (run: Run) => void }
+type Props = { projectId: string; runs: Run[]; onRunComplete: (run: Run) => void }
 
-export default function QACanvas({ runs, nextRunNumber, onRunComplete }: Props) {
-  const [steps, setSteps] = useState<Step[]>(() => DEMO_MODE ?
-    mockData.steps.map(step => ({ ...step, status: 'PENDING' as NodeStatus })) : [])
+export default function QACanvas({ projectId, runs, onRunComplete }: Props) {
+  const [steps, setSteps] = useState<Step[]>(() =>
+    (mockData.steps || []).map((step: any) => ({
+      id: step.id,
+      stage: step.stage,
+      name: step.name,
+      file: step.command || step.file || step.name,
+      command: step.command,
+      enabled: step.enabled ?? true,
+      durationMs: step.durationMs || 450,
+      status: (step.status as NodeStatus) || 'PENDING',
+    }))
+  )
+  const [error, setError] = useState('')
   const [running, setRunning] = useState(false)
   const [summary, setSummary] = useState('')
-  const [selectedRun, setSelectedRun] = useState<Run | null>(null)
+  const [searchParams] = useSearchParams()
+  const [selectedRunState, setSelectedRunState] = useState<Run | null>(null)
+  const requestedRun = searchParams.get('run')
+  const selectedRun = selectedRunState || (runs.find(run => String(run.run_number) === requestedRun) ?? null)
+  
   const [inspectedStep, setInspectedStep] = useState<Step | null>(null)
   const [editingStep, setEditingStep] = useState<Step | null>(null)
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
@@ -43,35 +59,43 @@ export default function QACanvas({ runs, nextRunNumber, onRunComplete }: Props) 
     setSteps(previous => previous.map(step => step.id === id ? { ...step, ...patch } : step))
 
   const resetSteps = () => {
-    setSelectedRun(null); setSummary('')
+    setSelectedRunState(null)
+    setSummary('')
     setSteps(previous => previous.map(step => ({ ...step, status: step.enabled ? 'PENDING' : 'SKIPPED', logOutput: undefined })))
   }
 
   const runQA = async (simulateFailure = false) => {
-    if (!DEMO_MODE || running || !steps.some(step => step.enabled)) return
-    resetSteps(); setMenu(null); setRunning(true)
+    if (!DEMO_MODE || running || !steps.length) return
+    setSelectedRunState(null)
+    setError('')
+    setSummary('')
+    setRunning(true)
+    setSteps(previous => previous.map(step => ({ ...step, status: 'PENDING' })))
     try {
-      const enabled = steps.filter(step => step.enabled)
-      const failedId = simulateFailure ? enabled[Math.min(1, enabled.length - 1)].id : null
-      const result = await runDemoSteps(steps, (id: string, status: NodeStatus, elapsed?: number) =>
-        updateStep(id, { status, elapsed }), failedId)
-      result.step_results.forEach(step => {
-        if (step.status === 'FAILED') updateStep(step.id, { logOutput: step.log_output })
-      })
-      onRunComplete({ run_number: nextRunNumber, branch: 'main', status: result.status,
-        duration_seconds: Math.round(result.durationMs / 1000), timestamp: new Date().toISOString(),
-        step_results: result.step_results })
-      setSummary(`Run #${nextRunNumber} — ${result.status}`)
-    } finally { setRunning(false) }
+      const failedId = simulateFailure ? steps[Math.min(1, steps.length - 1)].id : null
+      await runDemoSteps(steps, (id: string, status: NodeStatus) => updateStep(id, { status }), failedId)
+      if (projectId) {
+        const response = await fetch(`${API_URL}/api/v1/projects/${encodeURIComponent(projectId)}/qa/run`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ simulate_failure: simulateFailure }),
+        })
+        if (response.ok) {
+          const run = runRecordToRun(await response.json())
+          onRunComplete(run)
+          setSummary(`Run #${run.run_number} — ${run.status} (demo simulation)`)
+        }
+      }
+    } catch (err) { setError(errorMessage(err)) }
+    finally { setRunning(false) }
   }
 
-  const yaml = `# Demo QA configuration (not executed in live mode)\nsteps:\n${steps.map(step =>
-    `  - name: ${JSON.stringify(step.name)}\n    command: ${JSON.stringify(step.command)}\n    enabled: ${step.enabled}`).join('\n')}`
+  const yaml = `# QA pipeline configuration\nsteps:\n${steps.map(step =>
+    `  - name: ${JSON.stringify(step.name)}\n    command: ${JSON.stringify(step.command || step.file)}\n    enabled: ${step.enabled}`).join('\n')}`
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, width: '100%' }}>
 
-      {/* ── Top Header and Tab Controls ───────────────────────────────── */}
+      {/* ── Top Header and Controls ───────────────────────────────── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         flexWrap: 'wrap', gap: 16, padding: '18px 24px',
@@ -126,7 +150,7 @@ export default function QACanvas({ runs, nextRunNumber, onRunComplete }: Props) 
           )}
 
           {selectedRun ? (
-            <button className="btn btn--secondary" onClick={() => setSelectedRun(null)}>
+            <button className="btn btn--secondary" onClick={() => setSelectedRunState(null)}>
               Clear Inspection
             </button>
           ) : (
@@ -144,6 +168,8 @@ export default function QACanvas({ runs, nextRunNumber, onRunComplete }: Props) 
         </div>
       </div>
 
+      {error && <p role="alert" style={{ color: '#FA4D56' }}>{error}</p>}
+
       {/* ── View Content: Canvas or History ──────────────────────────── */}
       {viewTab === 'canvas' ? (
         <div className="qa-workspace-container" style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
@@ -152,12 +178,12 @@ export default function QACanvas({ runs, nextRunNumber, onRunComplete }: Props) 
             <h2 style={{ fontSize: 14, margin: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
               <History size={15} color="#60A5FA" /> <span>Recent QA Runs</span>
             </h2>
-            <button type="button" className="btn btn--ghost" style={{ width: '100%', marginBottom: 8, fontSize: 12 }} onClick={() => setSelectedRun(null)}>
+            <button type="button" className="btn btn--ghost" style={{ width: '100%', marginBottom: 8, fontSize: 12 }} onClick={() => setSelectedRunState(null)}>
               Interactive Current Pipeline
             </button>
             {runs.map(run => (
               <button
-                type="button" key={run.run_number} onClick={() => setSelectedRun(run)}
+                type="button" key={run.run_number} onClick={() => setSelectedRunState(run)}
                 aria-pressed={selectedRun?.run_number === run.run_number}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -179,7 +205,7 @@ export default function QACanvas({ runs, nextRunNumber, onRunComplete }: Props) 
             onContextMenu={event => { if (DEMO_MODE && !running) { event.preventDefault(); setMenu({ x: event.clientX, y: event.clientY }) } }}>
             {!DEMO_MODE && <p className="qa-runner-note">Live execution enabled when repository runner connects.</p>}
             {!stages.length && <p className="qa-stage-empty">No pipeline configured for this project.</p>}
-            
+
             <div className="qa-canvas-track" role="region" aria-label="QA pipeline stages"
               style={{ display: 'flex', alignItems: 'center', padding: 12, gap: 10, overflowX: 'auto' }}>
               {stages.map((stage, stageIndex) => {
@@ -189,10 +215,14 @@ export default function QACanvas({ runs, nextRunNumber, onRunComplete }: Props) 
                     <section className="qa-stage" aria-label={`${stage}: ${getStageStatus(jobs)}`} style={{ minWidth: 235, flexShrink: 0 }}>
                       <h2 style={{ fontSize: 14, marginBottom: 10 }}>{stage}</h2>
                       <div className="qa-stage-jobs">
-                        {jobs.map(step => (
+                        {jobs.map((step, stepIndex) => (
                           <QANodeCard
-                            key={step.id} {...step} running={running || !!selectedRun}
-                            onToggle={(id, enabled) => updateStep(id, { enabled, status: enabled ? 'PENDING' : 'SKIPPED' })}
+                            key={step.id}
+                            number={stepIndex + 1}
+                            name={step.name}
+                            file={step.file || step.command || ''}
+                            status={step.status}
+                            durationMs={step.durationMs}
                             onSelect={() => setInspectedStep(step)}
                           />
                         ))}
@@ -211,10 +241,20 @@ export default function QACanvas({ runs, nextRunNumber, onRunComplete }: Props) 
             {summary && <div className="qa-summary-bar"><strong>{summary}</strong><button className="btn btn--ghost" onClick={() => runQA()}>Run Again</button></div>}
             {menu && <ContextMenu {...menu} onAddStep={() => setShowModal(true)} onRunAll={() => runQA()} onReset={resetSteps} onClose={() => setMenu(null)} />}
             {showModal && <AddStepModal stages={stages.length ? stages : ['Custom']}
-              initialStep={editingStep ? { ...editingStep, timeoutSeconds: 30 } : undefined}
+              initialStep={editingStep ? { ...editingStep, command: editingStep.command || editingStep.file || '', timeoutSeconds: 30 } : undefined}
               onAdd={async step => {
-                setSteps(previous => editingStep ? previous.map(item => item.id === step.id ? { ...item, ...step, status: 'PENDING' } : item) :
-                  [...previous, { ...step, status: 'PENDING' }])
+                const newStep: Step = {
+                  id: step.id || `step-${Date.now()}`,
+                  stage: step.stage,
+                  name: step.name,
+                  command: step.command,
+                  file: step.command,
+                  enabled: step.enabled,
+                  durationMs: 500,
+                  status: 'PENDING'
+                }
+                setSteps(previous => editingStep ? previous.map(item => item.id === newStep.id ? { ...item, ...newStep } : item) :
+                  [...previous, newStep])
                 return true
               }}
               onClose={() => { setShowModal(false); setEditingStep(null) }} />}
@@ -229,7 +269,7 @@ export default function QACanvas({ runs, nextRunNumber, onRunComplete }: Props) 
 
       {inspectedStep && <div className="modal-overlay" onMouseDown={() => setInspectedStep(null)}>
         <div className="modal-box" role="dialog" aria-modal="true" aria-label={`${inspectedStep.name} details`} onMouseDown={event => event.stopPropagation()}>
-          <h2>{inspectedStep.name}</h2><code>{inspectedStep.command}</code>
+          <h2>{inspectedStep.name}</h2><code>{inspectedStep.command || inspectedStep.file}</code>
           <pre style={{ whiteSpace: 'pre-wrap' }}>{inspectedStep.logOutput || 'No execution log recorded for this step.'}</pre>
           {DEMO_MODE && !selectedRun && <button className="btn btn--secondary" onClick={() => {
             setEditingStep(inspectedStep); setInspectedStep(null); setShowModal(true)

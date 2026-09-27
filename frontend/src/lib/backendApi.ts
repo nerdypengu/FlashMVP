@@ -1,6 +1,4 @@
-import { database } from './person2Data'
-
-const API_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:8001').replace(/\/$/, '')
+import { database, API_URL } from './person2Data'
 
 export async function requireLiveBackend(signal: AbortSignal) {
   const response = await fetch(`${API_URL}/`, { signal })

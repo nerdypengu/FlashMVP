@@ -7,19 +7,53 @@ from typing import List
 
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import HTTPAuthorizationCredentials
+from pydantic import BaseModel
 from app.services.person2_store import bearer, user_token, read_rows, get_project
 
-from app.schemas.run import RunRecord
-from app.services import run_store
+from app.schemas.manifest import QAPipelineStage
+from app.schemas.run import QAStepResult, RunRecord
+from app.services import qa_pipeline, run_store
 
 router = APIRouter(prefix="/api/v1/projects", tags=["QA Run History"])
+
+
+class DemoQARunRequest(BaseModel):
+    simulate_failure: bool = False
+
+
+@router.get("/{project_id}/qa-pipeline", response_model=List[QAPipelineStage])
+async def project_qa_pipeline(project_id: str, credentials: HTTPAuthorizationCredentials | None = Depends(bearer)):
+    if not run_store.DEMO_MODE:
+        project_id = (await get_project(project_id, user_token(credentials)))["project_id"]
+    return qa_pipeline.get_pipeline(project_id, demo=run_store.DEMO_MODE)
+
+
+@router.post("/{project_id}/qa/run", response_model=RunRecord)
+async def demo_qa_run(project_id: str, body: DemoQARunRequest):
+    if not run_store.DEMO_MODE:
+        raise HTTPException(501, "Live QA must be run by the Bob project runner.")
+    stages = qa_pipeline.get_pipeline(project_id, demo=True)
+    files = [(stage.stage, pattern) for stage in stages for pattern in stage.files]
+    record = run_store.create_run(project_id)
+    failed = False
+    results = []
+    duration_ms = 0
+    for index, (stage, pattern) in enumerate(files):
+        status = "SKIPPED" if failed else "FAILED" if body.simulate_failure and index == min(1, len(files) - 1) else "PASSED"
+        elapsed = 0 if status == "SKIPPED" else 600
+        duration_ms += elapsed
+        results.append(QAStepResult(id=f"{stage}:{pattern}", stage=stage, step_name=pattern, status=status,
+                                    duration_ms=elapsed, log_output=f"Demo simulation: {status.lower()} (no test command executed)."))
+        failed |= status == "FAILED"
+    return run_store.update_run(project_id, record.run_id, status="FAILED" if failed else "PASSED",
+                                duration_ms=duration_ms, qa_steps=results)
 
 
 @router.get("/{project_id}/runs", response_model=List[RunRecord])
 async def list_runs(project_id: str, credentials: HTTPAuthorizationCredentials | None = Depends(bearer)) -> List[RunRecord]:
     """
     Return all workflow runs for a project sorted by triggered_at descending.
-    In DEMO_MODE, unknown project IDs fall back to the seeded demo runs.
+    In DEMO_MODE, runs are persisted locally in SQLite and isolated per project.
     """
     if run_store.DEMO_MODE:
         return run_store.get_runs(project_id)

@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { DEMO_MODE, errorMessage, loadServices, type Project } from '../../lib/person2Data'
 import { backendResponse, requireLiveBackend } from '../../lib/backendApi'
+import { useAuth } from '../../context/AuthContext'
 import LogViewer from '../playground/LogViewer'
-import { networkRate, telemetryWindow, telemetryTickLabel, intervalSummary, telemetryStaleAfter, telemetryPollingInterval } from './telemetryData.js'
+import { networkRate, telemetryWindow, telemetryTickLabel, intervalSummary, telemetryStaleAfter, telemetryPollingInterval, readTelemetryHistory, saveTelemetryHistory, telemetryRange } from './telemetryData.js'
 import './telemetry.css'
 
 type Stats = {
@@ -17,16 +18,32 @@ const value = (n: number | null | undefined, unit = '') => n == null ? 'Unavaila
 const time = (n: number) => new Date(n).toLocaleTimeString()
 const label = (s?: string) => s ? s.charAt(0) + s.slice(1).toLowerCase() : 'Unknown'
 
-export default function TelemetryCharts({ project }: { project?: Project }) {
-  const [services, setServices] = useState<string[]>(DEMO_MODE ? ['frontend', 'backend'] : [])
-  const [container, setContainer] = useState(DEMO_MODE ? 'frontend' : '')
+export default function TelemetryCharts({ project, projectId = project?.project_id ?? 'demo', demoData = true }: { project?: Project; projectId?: string; demoData?: boolean }) {
+  const { user } = useAuth()
+  const useDemoData = DEMO_MODE && demoData
+  const scope = `${DEMO_MODE ? useDemoData ? 'demo' : 'demo-empty' : 'live'}:${user?.id ?? 'anonymous'}:${projectId}`
+  const serviceKey = `telemetry.service:${scope}`
+  const [services, setServices] = useState<string[]>(useDemoData ? ['frontend', 'backend'] : [])
+  const [container, setContainer] = useState(() => {
+    try { return sessionStorage.getItem(serviceKey) ?? (useDemoData ? 'frontend' : '') }
+    catch { return useDemoData ? 'frontend' : '' }
+  })
+  const historyKey = `telemetry.history.v1:${scope}:${container}`
+  const [loadedHistoryKey, setLoadedHistoryKey] = useState('')
+  const [historySaved, setHistorySaved] = useState(true)
   const [serviceError, setServiceError] = useState('')
   const [error, setError] = useState('')
   const [stats, setStats] = useState<Stats | null>(null)
   const [data, setData] = useState<Point[]>([])
   const [refresh, setRefresh] = useState(0)
   const [busy, setBusy] = useState(false)
-  const [range, setRange] = useState(5)
+  const [range, setRange] = useState(() => {
+    try { return telemetryRange(localStorage.getItem('telemetry.range')) }
+    catch { return 5 }
+  })
+  useEffect(() => {
+    try { localStorage.setItem('telemetry.range', String(range)) } catch { /* Storage may be disabled. */ }
+  }, [range])
   const [pollingMs, setPollingMs] = useState(() => {
     try { return telemetryPollingInterval(localStorage.getItem('telemetry.pollingMs')) }
     catch { return 5000 }
@@ -58,10 +75,23 @@ export default function TelemetryCharts({ project }: { project?: Project }) {
     return () => { active = false }
   }, [project?.id, refresh])
 
-  useEffect(() => { setStats(null); setData([]); setError('') }, [project?.id, container])
+  useEffect(() => {
+    setStats(null); setError('')
+    try {
+      setData(readTelemetryHistory(sessionStorage, historyKey, Date.now()))
+      if (container) sessionStorage.setItem(serviceKey, container)
+    } catch { setData([]); setHistorySaved(false) }
+    setLoadedHistoryKey(historyKey)
+  }, [historyKey, serviceKey, container])
 
   useEffect(() => {
-    if (!container || (!DEMO_MODE && !project)) return
+    if (loadedHistoryKey !== historyKey || !container || !data.length) return
+    try { setHistorySaved(saveTelemetryHistory(sessionStorage, historyKey, data, Date.now())) }
+    catch { setHistorySaved(false) }
+  }, [data, historyKey, loadedHistoryKey, container])
+
+  useEffect(() => {
+    if (!container || (!useDemoData && (DEMO_MODE || !project))) return
     const controller = new AbortController()
     let timer: ReturnType<typeof setTimeout> | undefined
     let previous: Stats | null = null
@@ -76,9 +106,11 @@ export default function TelemetryCharts({ project }: { project?: Project }) {
       const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(15000)])
       try {
         let next: Stats
-        if (DEMO_MODE) {
+        if (useDemoData) {
           next = { sampled_at: new Date().toISOString(), status: 'RUNNING', cpu_percent: 12 + Math.random() * 12,
             memory_mb: 120 + Math.random() * 30, memory_limit_mb: 512, restart_count: 0, uptime_seconds: 3600,
+            network_rx_bytes: (previous?.network_rx_bytes ?? 0) + Math.round(1024 * (10 + Math.random() * 10) * pollingInterval.current / 1000),
+            network_tx_bytes: (previous?.network_tx_bytes ?? 0) + Math.round(1024 * (3 + Math.random() * 5) * pollingInterval.current / 1000),
             health: 'HEALTHY', health_checked_at: new Date().toISOString(), health_check_ms: 8 + Math.random() * 5 }
           next.memory_percent = next.memory_mb! / 512 * 100
         } else {
@@ -94,7 +126,7 @@ export default function TelemetryCharts({ project }: { project?: Project }) {
           health: next.health_check_ms ?? null, rx: networkRate(previous, next, 'network_rx_bytes', staleAfter), tx: networkRate(previous, next, 'network_tx_bytes', staleAfter) }
         previous = next
         setStats(next); setError(''); setNow(Date.now())
-        // ponytail: this tab retains one hour; add backend retention for cross-session history.
+        // ponytail: one hour per browser tab; add backend retention for history across devices.
         setData(points => {
           const last = points.at(-1)
           const gap = last && timestamp - last.time > staleAfter ? [{ time: last.time + 1, cpu: null, memory: null, health: null, rx: null, tx: null }] : []
@@ -112,7 +144,7 @@ export default function TelemetryCharts({ project }: { project?: Project }) {
     }
     void poll()
     return () => { controller.abort(); clearTimeout(timer); reschedulePoll.current = undefined }
-  }, [project?.id, container, refresh])
+  }, [project?.id, container, refresh, useDemoData])
 
   const stale = !!stats && (!!error || now - Date.parse(stats.sampled_at) > staleAfter)
   const current = stale ? null : stats
@@ -140,10 +172,10 @@ export default function TelemetryCharts({ project }: { project?: Project }) {
       <label>Update interval <select value={pollingMs} onChange={e => setPollingMs(Number(e.target.value))}>
         <option value={5000}>5s</option><option value={10000}>10s</option><option value={30000}>30s</option><option value={60000}>1m</option>
       </select></label>
-      <span className="telemetry-connection" role="status">{DEMO_MODE ? 'Demo data' : stale ? 'Stale' : error || serviceError ? 'Unavailable' : stats ? 'Connected' : busy ? 'Connecting…' : 'Waiting for service'}</span>
+      <span className="telemetry-connection" role="status">{useDemoData ? 'Demo data' : DEMO_MODE ? 'Live data unavailable' : stale ? 'Stale' : error || serviceError ? 'Unavailable' : stats ? 'Connected' : busy ? 'Connecting…' : 'Waiting for service'}</span>
       <button type="button" disabled={busy} onClick={() => setRefresh(n => n + 1)}>Refresh</button>
     </div>
-    <p className="telemetry-note">{stats ? `Last sample: ${new Date(stats.sampled_at).toLocaleString()}. ` : ''}Updates every {pollingMs / 1000} seconds. Historical data is available from this session only.</p>
+    <p className="telemetry-note">{stats ? `Last sample: ${new Date(stats.sampled_at).toLocaleString()}. ` : ''}Updates every {pollingMs / 1000} seconds. {historySaved ? 'Collected history is retained for one hour in this browser tab, including page refreshes.' : 'Browser storage is unavailable; history lasts until this page is refreshed.'}</p>
     <p className="telemetry-note">Chart window: {time(window.start)} – {time(window.end)}. Periods without collected samples remain empty.</p>
     {(error || serviceError) && <p className="telemetry-error" role="alert">{serviceError || error}</p>}
     {current?.stats_error && <p className="telemetry-error" role="alert">{current.stats_error}</p>}
@@ -155,10 +187,10 @@ export default function TelemetryCharts({ project }: { project?: Project }) {
       {chart('CPU Usage', '% · one core = 100%', [['cpu', 'CPU', '#6695ff']])}
       {chart('Memory Usage', 'MiB · includes cache', [['memory', 'Memory', '#ae8dff']])}
       {chart('Health-check Duration', 'ms · container check, not user request latency', [['health', 'Duration', '#55cbb5']])}
-      {data.some(p => p.rx != null || p.tx != null) && chart('Network Throughput', 'KiB/s', [['rx', 'Received', '#6695ff'], ['tx', 'Sent', '#e5b45b']])}
+      {chart('Network Throughput', 'KiB/s', [['rx', 'Received', '#6695ff'], ['tx', 'Sent', '#e5b45b']])}
     </div>
     {stats && stats.health === 'UNKNOWN' && <p className="telemetry-note">Service health requires a configured container health check. Running alone does not confirm application health.</p>}
-    <LogViewer key={`${project?.id}-${container}`} project={project} service={container} />
+    <LogViewer key={`${project?.id}-${container}`} project={project} service={container} demoData={useDemoData} />
   </>
 }
 

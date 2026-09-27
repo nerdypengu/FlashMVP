@@ -1,8 +1,9 @@
 import { useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import { History, CheckCircle2, XCircle } from 'lucide-react'
 import RunDetailInspector from './RunDetailInspector'
 
-type StepResult = { id: string; name: string; status: string; duration: string; log_output?: string }
+type StepResult = { id: string; name: string; status: string; duration: string; stage?: string; log_output?: string }
 
 export type Run = {
   run_number: number
@@ -20,14 +21,15 @@ function relativeTime(ts: string) {
   return `${Math.floor(diff/3600)}h ago`
 }
 
-export default function RunHistoryTable({ runs }: { runs: Run[] }) {
+export default function RunHistoryTable({ runs, projectName }: { runs: Run[]; projectName?: string }) {
+  const { projectId } = useParams()
   const [selected, setSelected] = useState<Run | null>(null)
 
   return (
     <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
       <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--glass-border)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
         <History size={16} color="#60A5FA" />
-        <span>Workflow Run History</span>
+        <span>{projectName ? `${projectName} · Run History` : 'Workflow Run History'}</span>
       </div>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
@@ -50,9 +52,12 @@ export default function RunHistoryTable({ runs }: { runs: Run[] }) {
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
               <td style={td}>
-                <button className="qa-run-open" onClick={() => setSelected(run)} aria-label={`Open Run #${run.run_number} details`}>
+                {projectId ? <Link className="qa-run-open" to={`/project/${encodeURIComponent(projectId)}/qa?run=${run.run_number}`}
+                  onClick={event => event.stopPropagation()} aria-label={`Inspect Run #${run.run_number} in QA Canvas`}>
                   #{run.run_number}
-                </button>
+                </Link> : <button className="qa-run-open" onClick={() => setSelected(run)} aria-label={`Open Run #${run.run_number} details`}>
+                  #{run.run_number}
+                </button>}
               </td>
               <td style={td}><code style={{ fontSize: 12, color: 'var(--text-muted)' }}>{run.branch}</code></td>
               <td style={td}>

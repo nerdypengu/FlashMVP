@@ -1,5 +1,5 @@
 from typing import List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class IBMBindings(BaseModel):
@@ -21,12 +21,17 @@ class QAPipelineStep(BaseModel):
     command: str     # "npm run lint"
 
 
+class QAPipelineStage(BaseModel):
+    stage: str = Field(min_length=1)
+    files: List[str] = Field(min_length=1)
+
+
 class ParsedManifest(BaseModel):
     project_id: str
     app_name: str
     template: str
     ibm_bindings: IBMBindings
     services: List[ServiceDefinition]
-    qa_pipeline: List[QAPipelineStep]
+    qa_pipeline: List[QAPipelineStep | QAPipelineStage]
     status: str      # "VALID" | "INVALID"
     error: str = ""  # populated when status == "INVALID"
